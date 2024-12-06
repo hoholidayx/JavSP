@@ -382,17 +382,18 @@ UNCENSORED_MARK_FILE = Image.open(os.path.abspath(resource_path('image/unc_mark.
 def process_poster(movie: Movie):
     def should_use_ai_crop_match(label):
         for r in Cfg().summarizer.cover.crop.on_id_pattern:
-            re.match(r, label)
-            return True
+            if re.match(r, label):
+                return True
         return False
     crop_engine = None
+    fanart_image = Image.open(movie.fanart_file)
+    fanart_cropped = fanart_image
     if (movie.info.uncensored or
        movie.data_src == 'fc2' or
        should_use_ai_crop_match(movie.info.label.upper())):
         crop_engine = Cfg().summarizer.cover.crop.engine
-    cropper = get_cropper(crop_engine)
-    fanart_image = Image.open(movie.fanart_file)
-    fanart_cropped = cropper.crop(fanart_image)
+        cropper = get_cropper(crop_engine)
+        fanart_cropped = cropper.crop(fanart_image)
 
     if Cfg().summarizer.cover.add_label:
         if movie.hard_sub:
