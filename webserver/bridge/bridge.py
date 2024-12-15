@@ -66,7 +66,7 @@ def generate_stub_video_files(id_list, filepath_str: str):
         # 尝试创建目录，如果已存在则忽略
         os.makedirs(filepath_str, exist_ok=True)
 
-        file_subfix = ".mp4"
+        file_subfix = "mp4"
         file_size_bytes = 1024
 
         for file_id in id_list:
