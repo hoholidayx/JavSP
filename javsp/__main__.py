@@ -5,6 +5,7 @@ import shutil
 import sys
 import threading
 import time
+from time import sleep
 from typing import Dict, List
 
 import requests
@@ -485,6 +486,7 @@ def RunNormalMode(cfg: Cfg, all_movies, actress_alias_map: {}):
                     else:
                         print(f"创建剧照文件夹 {extrafanartdir}")
                         os.mkdir(extrafanartdir)
+                    sleep(500)
                     for (id, pic_url) in enumerate(movie.info.preview_pics):
                         inner_bar.set_description(f"Downloading extrafanart {id} from url: {pic_url}")
 

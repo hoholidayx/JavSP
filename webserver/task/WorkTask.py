@@ -44,11 +44,18 @@ class WorkTask:
             movie_count = len(recognized)
             if movie_count == 0:
                 raise Exception('未找到影片文件')
-            self.logs.log(f'扫描影片文件：共找到 {movie_count} 部影片')
+            # 标记为stub类型
+            stub_movies_count = 0
+            for movie in recognized:
+                if movie.dvdid in movie_ids:
+                    movie.is_stub = True
+                    stub_movies_count += 1
+            self.logs.log(f'扫描影片文件：共找到 {movie_count} 部影片, 其中 {stub_movies_count} 部为占位文件')
             RunNormalMode(cfg, recognized, actress_alias_map)
             self.state = WorkTaskState.FINISHED  # Update state on error
         except Exception as e:
             self.state = WorkTaskState.FINISHED  # Update state on error
+            self.logs.log(e.__str__())
             self.logs.log(f"Error occurred: {traceback.format_exc()}")
 
 
