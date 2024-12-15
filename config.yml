@@ -13,12 +13,12 @@ scanner:
   # 整理哪个文件夹下的影片？（此项留空时将在运行时询问）
   input_directory: null
   # 哪些后缀的文件应当视为影片？
-  filename_extensions: [.3gp, .avi, .f4v, .flv, .iso, .m2ts, .m4v, .mkv, .mov, .mp4, .mpeg, .rm, .rmvb, .ts, .vob, .webm, .wmv, .strm, .mpg]
+  filename_extensions: [ .3gp, .avi, .f4v, .flv, .iso, .m2ts, .m4v, .mkv, .mov, .mp4, .mpeg, .rm, .rmvb, .ts, .vob, .webm, .wmv, .strm, .mpg ]
   # 扫描影片文件时忽略指定的文件夹
-  ignored_folder_name_pattern: ['^\.', '^#recycle$', '^#整理完成$', '^#不要扫描$']
+  ignored_folder_name_pattern: [ '^\.', '^#recycle$', '^#整理完成$', '^#不要扫描$' ]
   # 匹配番号时忽略小于指定大小的文件
   # 格式要求：https://docs.pydantic.dev/2.0/usage/types/bytesize/
-  minimum_size: 232MiB
+  minimum_size: 0MiB
 
 ################################
 network:
@@ -40,14 +40,15 @@ network:
 crawler:
   # 要使用的爬虫列表（汇总数据时从前到后进行）
   # airav avsox avwiki fanza fc2 fc2fan javbus javdb javlib javmenu jav321 mgstage prestige arzon arzon_iv
+  # normal: [ javbus, javdb, jav321, mgstage, prestige, airav, avsox, javlib ]
   selection:
-    normal: [airav, avsox, javbus, javdb, javlib, jav321, mgstage, prestige]
-    fc2: [fc2, avsox, javdb, javmenu, fc2ppvdb]
-    cid: [fanza]
-    getchu: [dl_getchu]
-    gyutto: [gyutto]
+    normal: [ javbus ]
+    fc2: [ javdb, javmenu, avsox, fc2ppvdb, fc2 ]
+    cid: [ fanza ]
+    getchu: [ dl_getchu ]
+    gyutto: [ gyutto ]
   # 爬虫至少要获取到哪些字段才可以视为抓取成功？
-  required_keys: [cover, title]
+  required_keys: [ cover, title ]
   # 努力爬取更准确更丰富的信息（会略微增加部分站点的爬取耗时）
   hardworking: true
   # 使用网页番号作为最终番号（启用时会对番号大小写等进行更正）
@@ -71,7 +72,7 @@ summarizer:
   move_files: true
 
   # 路径相关的选项
-  path: 
+  path:
     # 存放影片、封面等文件的文件夹路径
     output_folder_pattern: '#整理完成/{actress}/[{num}] {title}'
     # 影片、封面、nfo信息文件等的文件名将基于下面的规则来创建
@@ -106,11 +107,11 @@ summarizer:
     # nfo文件中的影片标题（即媒体管理工具中显示的标题）
     title_pattern: '{num} {title}'
     # 要添加到自定义分类的字段，空列表表示不添加
-    custom_genres_fields: ['{genre}', '{censor}']
+    custom_genres_fields: [ '{censor}' ]
     # 要添加到自定义标签的字段，空列表表示不添加
-    custom_tags_fields: ['{genre}', '{censor}']
+    custom_tags_fields: [ '{censor}' ]
   # 依次设置 已知无码/已知有码/不确定 这三种情况下 {censor} 对应的文本(可以利用此变量将有码/无码影片整理到不同文件夹)
-  censor_options_representation: ['无码', '有码', '打码情况未知']
+  censor_options_representation: [ '无码', '有码', '打码情况未知' ]
 
   cover:
     # 封面文件的名称（不含拓展名），可以使用如`{title}`等字段
@@ -121,18 +122,20 @@ summarizer:
     add_label: false
     crop:
       # 要使用图像识别来裁剪的番号系列需要匹配的正则表达式
+      #- '.*' #全匹配
+      #- '^\d{6}[-_]\d{3}$'
+      #- '^ARA'
+      #- '^SIRO'
+      #- '^GANA'
+      #- '^MIUM'
+      #- '^HHL'
       on_id_pattern:
-        - '^\d{6}[-_]\d{3}$'
-        - '^ARA'
-        - '^SIRO'
-        - '^GANA'
-        - '^MIUM'
         - '^HHL'
       # 要使用的图像识别引擎，详细配置见文档 https://github.com/Yuukiy/JavSP/wiki/AI-%7C-%E4%BA%BA%E8%84%B8%E8%AF%86%E5%88%AB
       # NOTE: 此处无法直接对应，请参照注释手动填入
       engine: null # null表示禁用图像剪裁
       ## 使用Slimeface: {{{
-      # engine: 
+      # engine:
       #   name: slimeface
       ## }}}
 
@@ -152,26 +155,26 @@ translator:
   # 进阶功能的文档 https://github.com/Yuukiy/JavSP/wiki/Translation-%7C-%E7%BF%BB%E8%AF%91
   engine: null
   ## 使用百度翻译: {{{
-  # engine: 
+  # engine:
   #   name: baidu
   #   # 百度翻译的APP ID和密钥
   #   app_id: ''
   #   api_key: ''
   ## }}}
   ## 使用必应翻译: {{{
-  # engine: 
+  # engine:
   #   name: bing
   #   # 微软必应翻译（Azure 认知服务 → 翻译）的密钥
   #   api_key: ''
   ## }}}
   ## 使用Claude翻译: {{{
-  # engine: 
+  # engine:
   #   name: claude
   #   # Claude的密钥 (使用haiku模型)
   #   api_key: ''
   ## }}}
   ## 使用OpenAI翻译: {{{
-  # engine: 
+  # engine:
   #   name: openai
   #   # OpenAI API（默认使用 Groq，可替换成任何兼容 OpenAI 的第三方 API）
   #   url: 'https://api.groq.com/openai/v1/chat/completions'
@@ -179,19 +182,19 @@ translator:
   #   # 要使用的模型（默认使用 Groq 的 llama-3.1-70b-versatile 模型，若使用 OpenAI 官方 API 的话一般模型为 gpt-3.5-turbo）
   #   model: llama-3.1-70b-versatile
   ## }}}
-  
+
   # 是否翻译各个字段
-  fields: 
+  fields:
     # 是否翻译标题
     title: true
     # 是否翻译剧情简介
     plot: true
-  
+
 ################################
 other:
   # 是否在stdin/stdout进行交互
   interactive: true
   # 是否允许检查更新。如果允许，在有新版本时会显示提示信息和新版功能
-  check_update: true
+  check_update: false
   # 是否允许检查到新版本时自动下载
   auto_update: false
