@@ -1,28 +1,16 @@
-import json
+from bottle import run, request, Bottle
 
-from bottle import route, run, request
-
-from webserver.ResponseData import ResponseData
 from webserver.task.TaskController import TaskController
 
 taskController = TaskController()
 
 
-@route('/')
-def index():
-    resp = ResponseData(data={"test": f"Hello, World!{taskController.start_task()}"})
-    return resp.to_dict()
-
-
-@route('/api/start', method='POST')
-def process_movie_num():
-    data = request.json
-    if data and 'movie_num' in data:
-        movie_num_upper = data['movie_num'].upper()
-        return json.dumps({'movie_num_upper': movie_num_upper})
-    else:
-        return json.dumps({'error': 'Invalid JSON data'})
+def start_task():
+    return taskController.start_task(request.json)
 
 
 if __name__ == '__main__':
-    run(host='localhost', port=7788)
+    app = Bottle()
+    app.route(path='/api/start_task', method='POST', callback=start_task)
+    app.config['json.enable'] = True
+    run(app=app, host='localhost', port=7788)

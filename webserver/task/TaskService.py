@@ -5,7 +5,7 @@ class TaskService:
     def __init__(self):
         self._tasks = {}
 
-    def add_task(self, task: WorkTask):
+    def add_task(self, task: WorkTask, start: bool = True):
         """添加任务
 
         Args:
