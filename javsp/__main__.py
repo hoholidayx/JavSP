@@ -5,12 +5,14 @@ import shutil
 import sys
 import threading
 import time
-from time import sleep
+from logging import Formatter
 from typing import Dict, List
 
 import requests
 from PIL import Image
 from pydantic_extra_types.pendulum_dt import Duration
+
+from webserver.task import Logs
 
 sys.stdout.reconfigure(encoding='utf-8')
 
@@ -29,7 +31,25 @@ for handler in root_logger.handlers:
     if type(handler) == logging.StreamHandler:
         handler.stream = TqdmOut
 
+
+# 将所有log按行保存到一个列表中
+class LoggerListHandler(logging.Handler):
+    def __init__(self):
+        super().__init__()
+        self.formatter = Formatter('%(asctime)s - %(levelname)s - %(message)s')
+        self.log_records = []
+
+    def clear(self):
+        self.log_records = []
+
+    def emit(self, record):
+        self.log_records.append(self.format(record))
+
+
 logger = logging.getLogger('main')
+logger.setLevel(logging.DEBUG)
+loggerListHandler = LoggerListHandler()
+logger.addHandler(loggerListHandler)
 
 from javsp.lib import resource_path
 from javsp.nfo import write_nfo
@@ -407,8 +427,9 @@ def process_poster(cfg: Cfg, movie: Movie):
     fanart_cropped.save(movie.poster_file)
 
 
-def RunNormalMode(cfg: Cfg, all_movies, actress_alias_map: {}):
+def RunNormalMode(cfg: Cfg, all_movies, actress_alias_map: {}, logs: Logs = None):
     """普通整理模式"""
+    logger.info("普通整理模式")
 
     def check_step(result, msg='步骤错误'):
         """检查一个整理步骤的结果，并负责更新tqdm的进度"""
@@ -524,6 +545,11 @@ def RunNormalMode(cfg: Cfg, all_movies, actress_alias_map: {}):
         except Exception as e:
             logger.debug(e, exc_info=True)
             logger.error(f'整理失败: {e}')
+            # 获取所有日志记录
+            log_lines = loggerListHandler.log_records
+            if logs:
+                logs.import_logs(log_lines)
+                print(logs.get_logs())
         finally:
             inner_bar.close()
     return return_movies

@@ -1,5 +1,3 @@
-import json
-
 from webserver.ResponseData import ResponseData
 from webserver.task.TaskService import TaskService
 
@@ -10,10 +8,14 @@ class TaskController:
         self._taskService = TaskService()
 
     def start_task(self, json_data: dict):
-        movie_dvdid_list = list()
+        resp_data = {}
         if json_data and 'movie_dvdid' in json_data:
             for movie_dvdid in json_data['movie_dvdid']:
-                movie_dvdid_list.append(movie_dvdid)
-            return ResponseData(data={'movie_num_upper': movie_dvdid_list})
+                task = self._taskService.start_task(movie_dvdid)
+                if task:
+                    resp_data[movie_dvdid] = {"task_id": task.id}
+                else:
+                    resp_data[movie_dvdid] = {}
+            return ResponseData(data=resp_data)
         else:
-            return ResponseData(code=1, msg='Invalid JSON data')
+            return ResponseData(code=ResponseData.STATUS_CODES_FAILED, msg='Invalid JSON data')

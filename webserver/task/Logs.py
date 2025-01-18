@@ -19,3 +19,6 @@ class Logs:
             list: 包含所有日志信息的列表
         """
         return self.logs
+
+    def import_logs(self, others: []):
+        return self.logs + others

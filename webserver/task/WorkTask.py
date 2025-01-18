@@ -18,12 +18,14 @@ class WorkTaskState(Enum):
 
 class WorkTask:
 
-    def __init__(self):
+    def __init__(self, movie_id: str):
         self.state = WorkTaskState.INIT
         self.id = uuid.uuid4().__str__()
         self.logs = Logs()
+        self.movie_ids = list()
+        self.movie_ids.append(movie_id)
 
-    def start(self, movie_ids):
+    def start(self):
         try:
             self.state = WorkTaskState.RUNNING  # Update state on error
             cfg = load_config()
@@ -34,7 +36,7 @@ class WorkTask:
             if input_dir is None:
                 raise FileNotFoundError(f"获取输入路径失败：{input_dir}")
             # 创建 Stub Movie 文件
-            generate_stub_video_files(movie_ids, input_dir)
+            generate_stub_video_files(self.movie_ids, input_dir)
             # 导入抓取器，必须在chdir之前
             import_crawlers(self.logs)
             os.chdir(input_dir)
@@ -47,11 +49,11 @@ class WorkTask:
             # 标记为stub类型
             stub_movies_count = 0
             for movie in recognized:
-                if movie.dvdid in movie_ids:
+                if movie.dvdid in self.movie_ids:
                     movie.is_stub = True
                     stub_movies_count += 1
             self.logs.log(f'扫描影片文件：共找到 {movie_count} 部影片, 其中 {stub_movies_count} 部为占位文件')
-            RunNormalMode(cfg, recognized, actress_alias_map)
+            RunNormalMode(cfg, recognized, actress_alias_map, self.logs)
             self.state = WorkTaskState.FINISHED  # Update state on error
         except Exception as e:
             self.state = WorkTaskState.FINISHED  # Update state on error
@@ -60,4 +62,4 @@ class WorkTask:
 
 
 if __name__ == '__main__':
-    WorkTask().start({'MIDV-999'})
+    pass

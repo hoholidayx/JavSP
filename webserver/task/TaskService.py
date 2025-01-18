@@ -1,17 +1,15 @@
-from webserver.task import WorkTask
+from webserver.task.WorkTask import WorkTask
 
 
 class TaskService:
     def __init__(self):
         self._tasks = {}
 
-    def add_task(self, task: WorkTask, start: bool = True):
-        """添加任务
-
-        Args:
-            task (WorkTask): 要添加的任务
-        """
+    def start_task(self, movie_id: str):
+        task = WorkTask(movie_id)
+        task.start()
         self._tasks[task.id] = task
+        return task
 
     def get_task(self, task_id: str) -> WorkTask:
         """根据任务 ID 获取任务
