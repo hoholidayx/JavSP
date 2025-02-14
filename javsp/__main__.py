@@ -545,13 +545,13 @@ def RunNormalMode(cfg: Cfg, all_movies, actress_alias_map: {}, logs: Logs = None
         except Exception as e:
             logger.debug(e, exc_info=True)
             logger.error(f'整理失败: {e}')
+        finally:
+            inner_bar.close()
             # 获取所有日志记录
             log_lines = loggerListHandler.log_records
             if logs:
                 logs.import_logs(log_lines)
                 print(logs.get_logs())
-        finally:
-            inner_bar.close()
     return return_movies
 
 

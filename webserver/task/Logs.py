@@ -21,4 +21,4 @@ class Logs:
         return self.logs
 
     def import_logs(self, others: []):
-        return self.logs + others
+        self.logs = self.logs + others

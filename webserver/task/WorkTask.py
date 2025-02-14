@@ -62,4 +62,5 @@ class WorkTask:
 
 
 if __name__ == '__main__':
-    pass
+    task = WorkTask("midv-999")
+    task.start()
