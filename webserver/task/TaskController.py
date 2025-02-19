@@ -7,15 +7,28 @@ class TaskController:
     def __init__(self):
         self._taskService = TaskService()
 
-    def start_task(self, json_data: dict):
-        resp_data = {}
-        if json_data and 'movie_dvdid' in json_data:
-            for movie_dvdid in json_data['movie_dvdid']:
-                task = self._taskService.start_task(movie_dvdid)
-                if task:
-                    resp_data[movie_dvdid] = {"task_id": task.id}
-                else:
-                    resp_data[movie_dvdid] = {}
-            return ResponseData(data=resp_data)
+    def start_task(self, query_param: dict):
+        movie_dvdid = query_param['movie_dvdid']
+        if movie_dvdid:
+            task = self._taskService.start_task(movie_dvdid)
+            return ResponseData(data={"task_id": task.id})
         else:
             return ResponseData(code=ResponseData.STATUS_CODES_FAILED, msg='Invalid JSON data')
+
+    def get_task_logs(self, query_param: dict):
+        task_id = query_param['task_id']
+        task = self._taskService.get_task(task_id)
+        if not task:
+            return ResponseData(code=ResponseData.STATUS_CODES_FAILED, msg=f"Failed to find task[id:{task_id}]")
+        else:
+            return ResponseData(data={
+                "log_list": task.logs.get_logs(),
+                "task": task.to_simple_dict()
+            })
+
+    def get_task_list(self, query_param: dict):
+        tasks = self._taskService.get_all_tasks()
+        response_data = list()
+        for task in tasks:
+            response_data.append(task.to_simple_dict())
+        return ResponseData(data={"task_list": response_data})
