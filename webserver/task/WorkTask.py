@@ -27,7 +27,7 @@ class WorkTask:
 
     def to_simple_dict(self):
         return {
-            "state": self.state,
+            "state": self.state.value,
             "task_id": self.id,
             "movie_ids": self.movie_ids,
         }
