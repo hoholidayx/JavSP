@@ -551,7 +551,6 @@ def RunNormalMode(cfg: Cfg, all_movies, actress_alias_map: {}, logs: Logs = None
             log_lines = loggerListHandler.log_records
             if logs:
                 logs.import_logs(log_lines)
-                print(logs.get_logs())
     return return_movies
 
 
