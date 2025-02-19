@@ -3,7 +3,7 @@ class ResponseData(dict):
     STATUS_CODES_FAILED = 1
 
     def __init__(self, code=STATUS_CODES_SUCCESS, msg='', data: dict = None):
-        super().__init__(data or {})  # 初始化字典部分
+        super().__init__({"code": code, "msg": msg, "data": data})  # 初始化字典部分
         self.code = code
         self.msg = msg
 
