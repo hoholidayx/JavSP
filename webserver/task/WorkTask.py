@@ -25,6 +25,19 @@ class WorkTask:
         self.movie_ids = list()
         self.movie_ids.append(movie_id)
 
+    def to_simple_dict(self):
+        return {
+            "state": self.state,
+            "task_id": self.id,
+            "movie_ids": self.movie_ids,
+        }
+
+    def remove_all_stub_movies(self, movie_list):
+        for movie in movie_list:
+            if movie.is_stub:
+                for file in movie.files:
+                    os.remove(file)
+
     def start(self):
         try:
             self.state = WorkTaskState.RUNNING  # Update state on error
@@ -49,7 +62,7 @@ class WorkTask:
             # 标记为stub类型
             stub_movies_count = 0
             for movie in recognized:
-                if movie.dvdid in self.movie_ids:
+                if movie.dvdid.casefold() in [x.casefold() for x in self.movie_ids]:
                     movie.is_stub = True
                     stub_movies_count += 1
             self.logs.log(f'扫描影片文件：共找到 {movie_count} 部影片, 其中 {stub_movies_count} 部为占位文件')
@@ -59,6 +72,9 @@ class WorkTask:
             self.state = WorkTaskState.FINISHED  # Update state on error
             self.logs.log(e.__str__())
             self.logs.log(f"Error occurred: {traceback.format_exc()}")
+        finally:
+            # 移除所有 scan 目录下的 stub 文件
+            self.remove_all_stub_movies(recognized)
 
 
 if __name__ == '__main__':
