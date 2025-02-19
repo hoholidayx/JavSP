@@ -11,7 +11,7 @@ class TaskService:
         self._tasks[task.id] = task
         return task
 
-    def get_task(self, task_id: str) -> WorkTask:
+    def get_task(self, task_id: str) -> WorkTask | None:
         """根据任务 ID 获取任务
 
         Args:
@@ -20,11 +20,17 @@ class TaskService:
         Returns:
             WorkTask: 找到的任务，如果不存在则返回 None
         """
-        return self._tasks.get(task_id)
+        try:
+            return self._tasks[task_id]
+        except Exception:
+            return None
 
-    def remove_task(self, task_id) -> WorkTask:
+    def remove_task(self, task_id) -> WorkTask | None:
         """Remove a task by its ID."""
-        return self._tasks.pop(task_id, None)
+        try:
+            return self._tasks.pop(task_id, None)
+        except Exception:
+            return None
 
     def get_all_tasks(self):
         """Get a list of all tasks."""
