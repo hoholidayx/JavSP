@@ -184,7 +184,10 @@ class Movie:
             # shutil.move might overwrite dst file
             if os.path.exists(abs_dst):
                 if rm_if_exist:
-                    os.rmdir(src)
+                    if os.path.isfile(src):
+                        os.rmdir(src)
+                    elif os.path.isdir(src):
+                        os.remove(src)
                 else:
                     logger.error(f'File exists: {abs_dst}')
             if (use_hardlink):
