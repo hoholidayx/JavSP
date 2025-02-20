@@ -24,6 +24,10 @@ class WorkTask:
         self.logs = Logs()
         self.movie_ids = list()
         self.movie_ids.append(movie_id)
+        """
+        任务执行完后回填，与 Movie 相关的结果
+        """
+        self.task_result = {}
 
     def to_simple_dict(self):
         return {
@@ -38,7 +42,14 @@ class WorkTask:
                 for file in movie.files:
                     os.remove(file)
 
+    def fill_task_result(self, movies):
+        for movie in movies:
+            self.task_result[movie.dvdid] = {
+                "save_dir": movie.save_dir
+            }
+
     def start(self):
+        recognized = list()
         try:
             self.state = WorkTaskState.RUNNING  # Update state on error
             cfg = load_config()
@@ -67,14 +78,14 @@ class WorkTask:
                     stub_movies_count += 1
             self.logs.log(f'扫描影片文件：共找到 {movie_count} 部影片, 其中 {stub_movies_count} 部为占位文件')
             RunNormalMode(cfg, recognized, actress_alias_map, self.logs)
+            self.fill_task_result(recognized)
             self.state = WorkTaskState.FINISHED  # Update state on error
         except Exception as e:
             self.state = WorkTaskState.FINISHED  # Update state on error
             self.logs.log(e.__str__())
             self.logs.log(f"Error occurred: {traceback.format_exc()}")
         finally:
-            # 移除所有 scan 目录下的 stub 文件
-            self.remove_all_stub_movies(recognized)
+            pass
 
 
 if __name__ == '__main__':

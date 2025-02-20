@@ -32,3 +32,11 @@ class TaskController:
         for task in tasks:
             response_data.append(task.to_simple_dict())
         return ResponseData(data={"task_list": response_data})
+
+    def list_movie_dir(self, query_param):
+        movie_dvdid = query_param["movie_dvdid"]
+        task_id = query_param["task_id"]
+        dir_tree = self._taskService.list_movie_dir(task_id, movie_dvdid)
+        if not dir_tree:
+            return ResponseData(code=ResponseData.STATUS_CODES_FAILED, msg=f"Failed to find task[id:{task_id}]")
+        return ResponseData(data={movie_dvdid: dir_tree})

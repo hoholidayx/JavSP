@@ -14,10 +14,13 @@ def start_task():
 def get_task_logs():
     return taskController.get_task_logs(request.params)
 
-
 @app.route('/api/get_task_list', method=['GET'])
 def get_task_list():
     return taskController.get_task_list(request.params)
+
+@app.route('/api/list_movie_dir', method=['GET'])
+def list_movie_dir():
+    return taskController.list_movie_dir(request.params)
 
 if __name__ == '__main__':
     app.config['json.enable'] = True
