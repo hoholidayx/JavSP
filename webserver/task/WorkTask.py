@@ -13,7 +13,8 @@ from webserver.task.Logs import Logs
 class WorkTaskState(Enum):
     INIT = 0
     RUNNING = 1
-    FINISHED = 2
+    FINISH_FAILED = 2
+    FINISH_SUCCESS = 3
 
 
 class WorkTask:
@@ -79,9 +80,9 @@ class WorkTask:
             self.logs.log(f'扫描影片文件：共找到 {movie_count} 部影片, 其中 {stub_movies_count} 部为占位文件')
             RunNormalMode(cfg, recognized, actress_alias_map, self.logs)
             self.fill_task_result(recognized)
-            self.state = WorkTaskState.FINISHED  # Update state on error
+            self.state = WorkTaskState.FINISH_SUCCESS  # Update state on error
         except Exception as e:
-            self.state = WorkTaskState.FINISHED  # Update state on error
+            self.state = WorkTaskState.FINISH_FAILED  # Update state on error
             self.logs.log(e.__str__())
             self.logs.log(f"Error occurred: {traceback.format_exc()}")
         finally:
