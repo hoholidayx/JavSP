@@ -86,7 +86,11 @@ class WorkTask:
             self.logs.log(e.__str__())
             self.logs.log(f"Error occurred: {traceback.format_exc()}")
         finally:
-            pass
+            # 清空所有 stub 类型文件
+            for movie in recognized:
+                if movie.is_stub:
+                    for file_path in movie.files:
+                        os.remove(file_path)
 
 
 if __name__ == '__main__':

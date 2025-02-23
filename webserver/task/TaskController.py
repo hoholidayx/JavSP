@@ -50,4 +50,6 @@ class TaskController:
             return ResponseData(code=ResponseData.STATUS_CODES_FAILED)
 
     def clear_all_tasks(self, query_param):
+        task_size = self._taskService.get_all_tasks().__sizeof__()
         self._taskService.remove_all_tasks()
+        return ResponseData(data={"task_size": task_size})
