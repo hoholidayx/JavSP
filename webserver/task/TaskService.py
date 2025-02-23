@@ -64,6 +64,13 @@ class TaskService:
         except Exception:
             return None
 
+    def remove_all_tasks(self):
+        """Remove a task by its ID."""
+        try:
+            return self._tasks.clear()
+        except Exception:
+            return None
+
     def get_all_tasks(self):
         """Get a list of all tasks."""
         return list(self._tasks.values())

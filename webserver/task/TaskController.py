@@ -40,3 +40,14 @@ class TaskController:
         if not dir_tree:
             return ResponseData(code=ResponseData.STATUS_CODES_FAILED, msg=f"Failed to find task[id:{task_id}]")
         return ResponseData(data={movie_dvdid: dir_tree})
+
+    def remove_task(self, query_param):
+        task_id = query_param['task_id']
+        task = self._taskService.remove_task(task_id)
+        if task:
+            return ResponseData(data={"task_id": task_id})
+        else:
+            return ResponseData(code=ResponseData.STATUS_CODES_FAILED)
+
+    def clear_all_tasks(self, query_param):
+        self._taskService.remove_all_tasks()
