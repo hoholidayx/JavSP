@@ -1,4 +1,4 @@
-from bottle import run, request, Bottle
+from bottle import run, request, Bottle, response
 
 from webserver.task.TaskController import TaskController
 
@@ -36,6 +36,22 @@ def clear_all_tasks():
     return taskController.clear_all_tasks(request.params)
 
 
+def before_request():
+    REQUEST_METHOD = request.environ.get('REQUEST_METHOD')
+
+    HTTP_ACCESS_CONTROL_REQUEST_METHOD = request.environ.get('HTTP_ACCESS_CONTROL_REQUEST_METHOD')
+    if REQUEST_METHOD == 'OPTIONS' and HTTP_ACCESS_CONTROL_REQUEST_METHOD:
+        request.environ['REQUEST_METHOD'] = HTTP_ACCESS_CONTROL_REQUEST_METHOD
+
+
+def after_request():
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    # response.headers['Access-Control-Allow-Methods'] = 'GET,POST,PUT,DELETE,OPTIONS'
+    response.headers['Access-Control-Allow-Headers'] = '*'
+
+
 if __name__ == '__main__':
     app.config['json.enable'] = True
+    app.add_hook("before_request", before_request)
+    app.add_hook("after_request", after_request)
     run(app=app, host='localhost', port=7788)
