@@ -50,7 +50,7 @@ class WorkTask:
             }
 
     def start(self):
-        recognized = list()
+        stub_movies = list()
         try:
             self.state = WorkTaskState.RUNNING  # Update state on error
             cfg = load_config()
@@ -72,14 +72,15 @@ class WorkTask:
             if movie_count == 0:
                 raise Exception('未找到影片文件')
             # 标记为stub类型
-            stub_movies_count = 0
             for movie in recognized:
                 if movie.dvdid.casefold() in [x.casefold() for x in self.movie_ids]:
                     movie.is_stub = True
-                    stub_movies_count += 1
-            self.logs.log(f'扫描影片文件：共找到 {movie_count} 部影片, 其中 {stub_movies_count} 部为占位文件')
-            RunNormalMode(cfg, recognized, actress_alias_map, self.logs)
-            self.fill_task_result(recognized)
+                    stub_movies.append(movie)
+            self.logs.log(f'扫描影片文件：共找到 {movie_count} 部影片, 其中 {stub_movies.__len__()} 部为占位文件')
+            # 不处理非本次任务的文件
+            RunNormalMode(cfg, stub_movies, actress_alias_map, self.logs)
+            # 保存输出结果，用于接口查询
+            self.fill_task_result(stub_movies)
             self.state = WorkTaskState.FINISH_SUCCESS  # Update state on error
         except Exception as e:
             self.state = WorkTaskState.FINISH_FAILED  # Update state on error

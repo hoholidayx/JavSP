@@ -34,6 +34,7 @@ def build_directory_tree_non_recursive(root_dir):
 class TaskService:
     def __init__(self):
         self._tasks = {}
+        self._task_future_map = {}
         self._executor = concurrent.futures.ThreadPoolExecutor()  # 创建线程池
 
     def start_task(self, movie_id: str):
@@ -41,6 +42,7 @@ class TaskService:
         # 将 task.start() 方法提交到线程池异步执行
         future = self._executor.submit(task.start)
         self._tasks[task.id] = task
+        self._task_future_map[task.id] = future
         return task
 
     def get_task(self, task_id: str) -> WorkTask | None:
@@ -60,6 +62,9 @@ class TaskService:
     def remove_task(self, task_id) -> WorkTask | None:
         """Remove a task by its ID."""
         try:
+            future = self._task_future_map[task_id]
+            if future and future.isr:
+                future.cancel()
             return self._tasks.pop(task_id, None)
         except Exception:
             return None
@@ -67,6 +72,9 @@ class TaskService:
     def remove_all_tasks(self):
         """Remove a task by its ID."""
         try:
+            for f in self._task_future_map:
+                f.cancel()
+            self._task_future_map.clear()
             return self._tasks.clear()
         except Exception:
             return None
