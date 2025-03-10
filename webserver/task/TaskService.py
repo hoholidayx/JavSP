@@ -62,22 +62,28 @@ class TaskService:
     def remove_task(self, task_id) -> WorkTask | None:
         """Remove a task by its ID."""
         try:
-            future = self._task_future_map[task_id]
-            if future and future.isr:
-                future.cancel()
-            return self._tasks.pop(task_id, None)
+            if task_id in self._task_future_map:
+                future = self._task_future_map[task_id]
+                if future:
+                    future.cancel()
+            if task_id in self._tasks:
+                return self._tasks.pop(task_id, None)
         except Exception:
-            return None
+            print(f"remove_task 失败，找不到 task_id:{task_id}")
+        return None
 
-    def remove_all_tasks(self):
+    def remove_all_tasks(self) -> int:
         """Remove a task by its ID."""
         try:
-            for f in self._task_future_map:
-                f.cancel()
+            for f in self._task_future_map.values():
+                if not f.done() or f.running():
+                    f.cancel()
             self._task_future_map.clear()
-            return self._tasks.clear()
+            task_len = self._tasks.__len__()
+            self._tasks.clear()
+            return task_len
         except Exception:
-            return None
+            return -1
 
     def get_all_tasks(self):
         """Get a list of all tasks."""
