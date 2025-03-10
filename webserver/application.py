@@ -31,7 +31,7 @@ def remove_task():
     return taskController.remove_task(request.params)
 
 
-@app.route('/api/clear_all_tasks', method=['GET'])
+@app.route('/api/clear_all_tasks', method=['GET', 'POST'])
 def clear_all_tasks():
     return taskController.clear_all_tasks(request.params)
 
