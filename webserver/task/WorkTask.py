@@ -78,7 +78,9 @@ class WorkTask:
                     stub_movies.append(movie)
             self.logs.log(f'扫描影片文件：共找到 {movie_count} 部影片, 其中 {stub_movies.__len__()} 部为占位文件')
             # 不处理非本次任务的文件
-            RunNormalMode(cfg, stub_movies, actress_alias_map, self.logs)
+            return_movies = RunNormalMode(cfg, stub_movies, actress_alias_map, self.logs)
+            if not return_movies or (len(return_movies) == 0):
+                raise Exception('影片处理失败')
             # 保存输出结果，用于接口查询
             self.fill_task_result(stub_movies)
             self.state = WorkTaskState.FINISH_SUCCESS  # Update state on error
