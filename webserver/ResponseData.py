@@ -1,6 +1,7 @@
 class ResponseData(dict):
     STATUS_CODES_SUCCESS = 0
     STATUS_CODES_FAILED = 1
+    STATUS_CODES_UNAUTHORIZED = 400
 
     def __init__(self, code=STATUS_CODES_SUCCESS, msg='', data: dict = None):
         super().__init__({"code": code, "msg": msg, "data": data})  # 初始化字典部分

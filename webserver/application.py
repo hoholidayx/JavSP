@@ -1,9 +1,11 @@
-from bottle import run, request, Bottle, response
+from bottle import run, request, Bottle, response, abort
 
 from webserver.task.TaskController import TaskController
+from webserver.user.UserController import UserController
 
 app = Bottle()
 taskController = TaskController()
+userController = UserController()
 
 
 @app.route('/api/start_task', method=['GET'])
@@ -36,6 +38,11 @@ def clear_all_tasks():
     return taskController.clear_all_tasks(request.params)
 
 
+@app.route('/login', method=['POST'])
+def login():
+    return userController.login(request, response)
+
+
 def before_request():
     REQUEST_METHOD = request.environ.get('REQUEST_METHOD')
 
@@ -50,8 +57,18 @@ def after_request():
     response.headers['Access-Control-Allow-Headers'] = '*'
 
 
+def check_login():
+    # 排除登录相关路由
+    if request.path in ["/login"]:
+        return True
+
+    if not userController.check_login(request):
+        abort(400, "未登录")
+
+
 if __name__ == '__main__':
     app.config['json.enable'] = True
     app.add_hook("before_request", before_request)
+    app.add_hook("before_request", check_login)
     app.add_hook("after_request", after_request)
     run(app=app, host='localhost', port=7788)
