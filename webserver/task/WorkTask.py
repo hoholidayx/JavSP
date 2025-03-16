@@ -1,6 +1,7 @@
 import os
 import traceback
 import uuid
+from datetime import datetime
 from enum import Enum
 
 from javsp.__main__ import RunNormalMode
@@ -29,12 +30,14 @@ class WorkTask:
         任务执行完后回填，与 Movie 相关的结果
         """
         self.task_result = {}
+        self.start_time: str = ''
 
     def to_simple_dict(self):
         return {
             "state": self.state.value,
             "task_id": self.id,
             "movie_ids": self.movie_ids,
+            "start_time": self.start_time
         }
 
     def remove_all_stub_movies(self, movie_list):
@@ -50,6 +53,7 @@ class WorkTask:
             }
 
     def start(self):
+        self.start_time = datetime.now().strftime("%Y%m%d %H:%M:%S")  # 格式示例："20250316 14:34:33"
         stub_movies = list()
         try:
             self.state = WorkTaskState.RUNNING  # Update state on error

@@ -95,7 +95,7 @@ class TaskService:
 
     def list_movie_dir(self, task_id, movie_dvdid) -> dict | None:
         task = self.get_task(task_id)
-        if task and task.task_result[movie_dvdid]:
+        if task and (movie_dvdid in task.task_result):
             movie_result = task.task_result[movie_dvdid]
             if not movie_result:
                 print(f"无影片结果！{movie_dvdid}")
