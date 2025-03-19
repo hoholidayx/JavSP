@@ -2,27 +2,32 @@ import {createRouter, createWebHistory} from 'vue-router'
 
 const routes = [
     {
+        path: '/login',
+        component: () => import('@/views/Login.vue'),
+        meta: {requiresAuth: false}
+    },
+    {
         path: '/',
         name: 'Home',
-        component: () => import('@/views/Home.vue')
+        component: () => import('@/views/Home.vue'),
     },
     {
         path: '/task/start_task',
         name: 'Task/StartTask',
         component: () => import('@/views/task/StartTask.vue'),
-        props: true
+        props: true,
     },
     {
         path: '/task/task_list',
         name: 'Task/TaskList',
         component: () => import('@/views/task/TaskList.vue'),
-        props: true
-    }, ,
+        props: true,
+    },
     {
         path: '/task/detail/:task_id',
         name: 'Task/TaskDetail',
         component: () => import('@/views/task/TaskDetail.vue'),
-        props: true
+        props: true,
     }
 ]
 

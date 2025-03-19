@@ -1,6 +1,6 @@
 <template>
   <div class="home-container">
-    <h1>Item List</h1>
+    <h1>JavSP</h1>
 
     <!-- 列表组件 -->
     <EntryList/>

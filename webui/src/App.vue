@@ -19,7 +19,7 @@
 </template>
 
 <script setup>
-// 不需要额外逻辑时可以留空
+
 </script>
 
 <style>

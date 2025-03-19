@@ -18,6 +18,7 @@
       >
         <div class="task-header">
           <span class="task-id">任务ID: {{ task.task_id }}</span>
+          <span class="task-desc">开始时间: {{ task.start_time }}</span>
           <span class="task-state" :class="stateClass(task.state)">
             {{ stateText(task.state) }}
           </span>
@@ -37,6 +38,7 @@
 import {onMounted, ref, toRaw} from 'vue'
 import {useRouter} from 'vue-router'
 import {ElMessage} from 'element-plus'
+import axios from 'axios'
 
 const router = useRouter()
 const tasks = ref([])
@@ -60,8 +62,8 @@ const stateClassMap = {
 // 获取任务列表
 const fetchTasks = async () => {
   try {
-    const response = await fetch('http://127.0.0.1:7788/api/get_task_list')
-    const result = await response.json()
+    const response = await axios.get('http://localhost:7788/api/get_task_list')
+    const result = response.data
     if (result.code === 0) {
       tasks.value = result.data.task_list
     } else {
@@ -95,11 +97,9 @@ const navigateToDetail = (taskId, movieIds, stateText) => {
 const clearAllTasks = async () => {
   //清空所有任务记录
   try {
-    const response = await fetch('http://127.0.0.1:7788/api/clear_all_tasks', {
-      method: 'POST'
-    })
+    const response = await axios.post('http://localhost:7788/api/clear_all_tasks')
 
-    const result = await response.json()
+    const result = response.data
 
     if (result.code === 0) {
       ElMessage({
@@ -268,4 +268,62 @@ const clearAllTasks = async () => {
   font-size: 0.9em;
   color: #666;
 }
+
+.task-card {
+  background: #fff;
+  border-radius: 10px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  cursor: pointer;
+  transition: box-shadow 0.3s ease-in-out;
+}
+
+.task-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* 状态样式优化 */
+.task-state {
+  padding: 5px 10px;
+  border-radius: 4px;
+  font-size: 0.85em;
+  font-weight: bold;
+}
+
+.movie-list {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.movie-id {
+  background-color: #f0f0f0;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.85em;
+  word-break: break-word;
+  white-space: normal;
+}
+
+.action-button {
+  background: #42b983;
+  border: 1px solid #42b983;
+  color: white;
+  font-size: 1em;
+  cursor: pointer;
+  padding: 10px 20px;
+  border-radius: 6px;
+  transition: all 0.3s ease-in-out;
+}
+
+.action-button:hover {
+  background: #36a372;
+  border-color: #36a372;
+}
+
+.action-button:active {
+  background: #2e8b67;
+  border-color: #2e8b67;
+}
+
 </style>

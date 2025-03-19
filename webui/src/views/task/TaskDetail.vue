@@ -64,6 +64,7 @@
 import {useRoute, useRouter} from 'vue-router'
 import {ref} from "vue";
 import {ElLoading, ElMessage, ElMessageBox} from "element-plus";
+import axios from 'axios';
 
 const route = useRoute()
 const router = useRouter()
@@ -97,20 +98,31 @@ const taskLogs = ref({})
  */
 const deleteTask = async () => {
   try {
-    const response = await fetch(
-        `http://127.0.0.1:7788/api/remove_task?task_id=${taskData.value.taskId}`
-    )
-    const result = await response.json()
+    // 使用 axios 发送 GET 请求（推荐用 delete 方法）
+    const response = await axios.get('http://localhost:7788/api/remove_task', {
+      params: {
+        task_id: taskData.value.taskId
+      }
+    });
+
+    // axios 自动解析 JSON，数据在 response.data
+    const result = response.data;
 
     if (result.code === 0) {
-      ElMessage.info('删除成功')
+      ElMessage.info('删除成功');
     } else {
-      ElMessage.error(`删除失败：${result.msg}`)
+      ElMessage.error(`删除失败：${result.msg}`); // 业务逻辑错误
     }
   } catch (error) {
-    ElMessage.error(`请求失败：${error.message}`)
+    // 错误处理（网络错误或 HTTP 状态码非 2xx）
+    if (axios.isAxiosError(error)) {
+      const msg = error.response?.data?.msg || error.message;
+      ElMessage.error(`请求失败：${msg}`);
+    } else {
+      ElMessage.error(`未知错误：${error}`);
+    }
   } finally {
-    goBack()
+    goBack(); // 无论成功失败都跳转
   }
 }
 
@@ -122,10 +134,15 @@ const showTaskLogs = async () => {
   })
 
   try {
-    const response = await fetch(
-        `http://127.0.0.1:7788/api/get_task_logs?task_id=${taskData.value.taskId}`
+    const response = await axios.get(
+        `http://localhost:7788/api/get_task_logs`,
+        {
+          params: {
+            task_id: taskData.value.taskId
+          }
+        }
     )
-    const result = await response.json()
+    const result = response.data
 
     if (result.code === 0) {
       taskLogs.value = result.data.log_list
@@ -148,15 +165,15 @@ const showMovieDirectory = async () => {
   })
 
   try {
-    const params = new URLSearchParams({
-      task_id: taskData.value.taskId,
-      movie_dvdid: selectedMovieId.value
-    })
-
-    const response = await fetch(
-        `http://127.0.0.1:7788/api/list_movie_dir?${params}`
+    const response = await axios.get(
+        `http://localhost:7788/api/list_movie_dir`, {
+          params: {
+            task_id: taskData.value.taskId,
+            movie_dvdid: selectedMovieId.value
+          }
+        }
     )
-    const result = await response.json()
+    const result = response.data
     if (result.code === 0) {
       // 根据实际返回数据结构调整展示方式
       ElMessageBox.alert(
@@ -188,11 +205,43 @@ const showMovieDirectory = async () => {
 .info-item {
   margin: 15px 0;
   font-size: 16px;
+  display: flex;
+  align-items: center;
 }
 
 .info-item label {
   font-weight: bold;
   margin-right: 10px;
+  color: #333;
+}
+
+/* 任务状态增强 */
+.state-init {
+  background: #f0f0f0;
+  color: #666;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.state-running {
+  background: #e6f4ff;
+  color: #1677ff;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.state-failed {
+  background: #fff2f0;
+  color: #ff4d4f;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.state-success {
+  background: #f6ffed;
+  color: #52c41a;
+  padding: 4px 8px;
+  border-radius: 4px;
 }
 
 .task-actions {
@@ -206,8 +255,16 @@ const showMovieDirectory = async () => {
 }
 
 .movie-radio {
-  display: block;
-  margin: 10px 0;
+  display: inline-flex;
+  align-items: center;
+  margin: 5px 10px 5px 0;
+  font-size: 14px;
+}
+
+.movie-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
 .log-content {
@@ -219,40 +276,7 @@ const showMovieDirectory = async () => {
   white-space: pre-wrap;
 }
 
-/* 状态样式保持与列表页一致 */
-.state-init {
-  color: #666;
-}
-
-.state-running {
-  color: #1677ff;
-}
-
-.state-failed {
-  color: #ff4d4f;
-}
-
-.state-success {
-  color: #52c41a;
-}
-
-/* 自定义对话框样式 */
-:deep(.dir-dialog) {
-  width: 70%;
-  max-width: 800px;
-}
-
-:deep(.dir-dialog pre) {
-  white-space: pre-wrap;
-  word-break: break-all;
-}
-
-.detail-row label {
-  width: 80px;
-  color: #666;
-  font-weight: 500;
-}
-
+/* 按钮优化 */
 .action-bar {
   border-top: 1px solid #eee;
   padding: 2rem 0;
@@ -261,17 +285,40 @@ const showMovieDirectory = async () => {
 }
 
 .action-button {
-  background: none;
-  border: none;
-  color: #42b983;
+  background: #42b983;
+  border: 1px solid #42b983;
+  color: white;
   font-size: 1em;
   cursor: pointer;
-  padding: 0.8em 1.5em;
+  padding: 10px 20px;
   border-radius: 6px;
-  transition: background 0.2s;
+  transition: all 0.3s ease-in-out;
 }
 
 .action-button:hover {
-  background: #f5f5f5;
+  background: #36a372;
+  border-color: #36a372;
+}
+
+.action-button:active {
+  background: #2e8b67;
+  border-color: #2e8b67;
+}
+
+/* 日志对话框优化 */
+:deep(.el-dialog) {
+  width: 70%;
+  max-width: 900px;
+}
+
+:deep(.el-dialog pre) {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.detail-row label {
+  width: 80px;
+  color: #666;
+  font-weight: 500;
 }
 </style>
