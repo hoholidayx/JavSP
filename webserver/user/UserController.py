@@ -18,18 +18,18 @@ class UserController:
             return ResponseData(code=ResponseData.STATUS_CODES_FAILED)
 
         # 设置客户端 cookie
-        http_resp.set_cookie("token",
+        http_resp.set_cookie("Auth-Token",
                              result["token"],
                              path="/",  # 全站有效
                              max_age=SESSION_EXPIRE,
-                             httponly=True)
+                             httponly=False)
 
         return ResponseData(data=result)
 
     def check_login(self, request):
         # 检查访问令牌
-        token = request.headers.get("token") or \
-                request.query.get("token") or \
-                request.get_cookie("token")
+        token = request.headers.get("Auth-Token") or \
+                request.query.get("Auth-Token") or \
+                request.get_cookie("Auth-Token")
 
         return self.user_service.check_login(token)

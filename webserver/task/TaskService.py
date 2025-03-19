@@ -23,7 +23,7 @@ def build_directory_tree_non_recursive(root_dir):
         for item in os.listdir(current_dir):
             full_path = os.path.join(current_dir, item)
             if os.path.isfile(full_path):
-                current_tree[item] = "file"
+                current_tree[item] = full_path
             elif os.path.isdir(full_path):
                 current_tree[item] = {}  # 创建子目录字典
                 stack.append((full_path, current_tree[item]))  # 将子目录添加到栈中

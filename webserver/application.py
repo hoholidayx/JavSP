@@ -1,4 +1,4 @@
-from bottle import run, request, Bottle, response, abort
+from bottle import run, request, Bottle, response, abort, HTTPResponse
 
 from webserver.task.TaskController import TaskController
 from webserver.user.UserController import UserController
@@ -38,23 +38,28 @@ def clear_all_tasks():
     return taskController.clear_all_tasks(request.params)
 
 
-@app.route('/login', method=['POST'])
+@app.route('/login', method=['GET', 'POST', 'OPTIONS'])
 def login():
     return userController.login(request, response)
 
 
-def before_request():
-    REQUEST_METHOD = request.environ.get('REQUEST_METHOD')
+@app.route('/<path:path>', method='OPTIONS')
+def handle_options(path):
+    """
+    处理浏览器预检请求，避免405错误‌
+    """
+    return HTTPResponse(status=204)
 
-    HTTP_ACCESS_CONTROL_REQUEST_METHOD = request.environ.get('HTTP_ACCESS_CONTROL_REQUEST_METHOD')
-    if REQUEST_METHOD == 'OPTIONS' and HTTP_ACCESS_CONTROL_REQUEST_METHOD:
-        request.environ['REQUEST_METHOD'] = HTTP_ACCESS_CONTROL_REQUEST_METHOD
+
+def before_request():
+    check_login()
 
 
 def after_request():
-    response.headers['Access-Control-Allow-Origin'] = '*'
-    # response.headers['Access-Control-Allow-Methods'] = 'GET,POST,PUT,DELETE,OPTIONS'
-    response.headers['Access-Control-Allow-Headers'] = '*'
+    response.headers['Access-Control-Allow-Origin'] = request.headers['Origin']  # 或指定域名
+    response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, OPTIONS'
+    response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, token, Token'
+    response.headers['Access-Control-Allow-Credentials'] = 'true'  # 需携带cookie时
 
 
 def check_login():
@@ -63,12 +68,11 @@ def check_login():
         return True
 
     if not userController.check_login(request):
-        abort(400, "未登录")
+        abort(401, "未登录")
 
 
 if __name__ == '__main__':
     app.config['json.enable'] = True
     app.add_hook("before_request", before_request)
-    app.add_hook("before_request", check_login)
     app.add_hook("after_request", after_request)
     run(app=app, host='localhost', port=7788)
