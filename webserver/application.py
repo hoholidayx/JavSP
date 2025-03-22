@@ -1,7 +1,7 @@
 from bottle import run, request, Bottle, response, abort, HTTPResponse
 
-from webserver.task.TaskController import TaskController
-from webserver.user.UserController import UserController
+from task.TaskController import TaskController
+from user.UserController import UserController
 
 app = Bottle()
 taskController = TaskController()
