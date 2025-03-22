@@ -3,6 +3,10 @@ from bottle import run, request, Bottle, response, abort, HTTPResponse, app
 from webserver.task.TaskController import TaskController
 from webserver.user.UserController import UserController
 
+taskController = TaskController()
+userController = UserController()
+app = Bottle()
+
 
 @app.route('/api/start_task', method=['GET'])
 def start_task():
@@ -68,9 +72,6 @@ def check_login():
 
 
 if __name__ == '__main__':
-    taskController = TaskController()
-    userController = UserController()
-    app = Bottle()
     app.config['json.enable'] = True
     app.add_hook("before_request", before_request)
     app.add_hook("after_request", after_request)

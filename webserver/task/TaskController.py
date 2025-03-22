@@ -1,5 +1,5 @@
-from webserver.ResponseData import ResponseData
 from webserver.task.TaskService import TaskService
+from webserver.utils.ResponseData import ResponseData
 
 
 class TaskController:

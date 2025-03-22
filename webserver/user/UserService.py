@@ -2,7 +2,7 @@
 import time
 import uuid
 
-from webserver.Configuration import CONFIG
+from webserver.utils.Configuration import CONFIG
 
 SESSION_EXPIRE = 3600  # 登录有效期1小时（秒）
 

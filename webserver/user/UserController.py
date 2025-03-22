@@ -1,5 +1,5 @@
-from webserver.ResponseData import ResponseData
 from webserver.user.UserService import UserService, SESSION_EXPIRE
+from webserver.utils.ResponseData import ResponseData
 
 
 class UserController:
