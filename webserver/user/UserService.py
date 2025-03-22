@@ -2,7 +2,8 @@
 import time
 import uuid
 
-ACCOUNTS = {"hoholiday": "hoholiday"}  # 固定账号密码
+from webserver.Configuration import CONFIG
+
 SESSION_EXPIRE = 3600  # 登录有效期1小时（秒）
 
 # 内存存储结构
@@ -12,12 +13,12 @@ sessions = {}  # 存储登录会话 {token: {username: str, login_time: float}}
 class UserService:
 
     def __init__(self):
-        pass
+        self.ACCOUNTS = {CONFIG['user']['username']: CONFIG['user']['password_template']}
 
     def login(self, username, password):
-        if username not in ACCOUNTS:
+        if username not in self.ACCOUNTS:
             return None
-        pwd = ACCOUNTS[username]
+        pwd = self.ACCOUNTS[username]
         # 1. 获取当前日期字符串
         current_date = time.strftime("%Y%m%d")  # 格式示例：20250316
 
