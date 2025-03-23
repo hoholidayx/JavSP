@@ -8,12 +8,22 @@ import axios from 'axios';
 // 创建Vue应用
 const app = createApp(App)
 
+// 配置Axios全局默认值
+const apiClient = axios.create({
+    baseURL: "http://localhost:8080",
+    // baseURL: "https://javsp.myhub.fun",
+    withCredentials: true, // 保持原withCredentials配置
+    timeout: 10000,
+})
+
+// 挂载到Vue全局属性（Vue3新写法）
+app.config.globalProperties.$axios = apiClient
+
 // 注册路由
 app.use(router)
 app.use(ElementPlus)
 // 挂载到DOM
 app.mount('#app')
-axios.defaults.withCredentials = true;
 
 // 路由守卫
 router.beforeEach(async (to, from, next) => {

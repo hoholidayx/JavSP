@@ -67,7 +67,7 @@ const handleSubmit = async () => {
 
   try {
     loading.value = true
-    const response = await axios.get('http://localhost:7788/api/start_task', {
+    const response = await this.$axios.get('/api/start_task', {
       params: {
         movie_dvdid: taskContent.value
       }

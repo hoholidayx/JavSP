@@ -60,8 +60,8 @@ export default {
       this.errorMessage = '';
 
       try {
-        const response = await axios.post(
-            'http://localhost:7788/login',
+        const response = await this.$axios.post(
+            '/login',
             qs.stringify(this.form),
             {
               headers: {

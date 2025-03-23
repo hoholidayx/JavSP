@@ -99,7 +99,7 @@ const taskLogs = ref({})
 const deleteTask = async () => {
   try {
     // 使用 axios 发送 GET 请求（推荐用 delete 方法）
-    const response = await axios.get('http://localhost:7788/api/remove_task', {
+    const response = await this.$axios.get('/api/remove_task', {
       params: {
         task_id: taskData.value.taskId
       }
@@ -134,8 +134,8 @@ const showTaskLogs = async () => {
   })
 
   try {
-    const response = await axios.get(
-        `http://localhost:7788/api/get_task_logs`,
+    const response = await this.$axios.get(
+        `/api/get_task_logs`,
         {
           params: {
             task_id: taskData.value.taskId
@@ -165,8 +165,8 @@ const showMovieDirectory = async () => {
   })
 
   try {
-    const response = await axios.get(
-        `http://localhost:7788/api/list_movie_dir`, {
+    const response = await this.$axios.get(
+        `/api/list_movie_dir`, {
           params: {
             task_id: taskData.value.taskId,
             movie_dvdid: selectedMovieId.value
