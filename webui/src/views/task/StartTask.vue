@@ -50,7 +50,7 @@
 <script setup>
 import {ref} from 'vue'
 import {ElMessage} from 'element-plus'
-import axios from 'axios'
+import apiClient from "@/main.js";
 
 const taskContent = ref('')
 const taskId = ref('')
@@ -67,13 +67,9 @@ const handleSubmit = async () => {
 
   try {
     loading.value = true
-    const response = await this.$axios.get('/api/start_task', {
+    const response = await apiClient.get('/api/start_task', {
       params: {
         movie_dvdid: taskContent.value
-      }
-    }, {
-      headers: {
-        'Content-Type': 'application/json'
       }
     })
 

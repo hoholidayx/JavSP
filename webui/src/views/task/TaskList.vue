@@ -38,6 +38,7 @@
 import {onMounted, ref, toRaw} from 'vue'
 import {useRouter} from 'vue-router'
 import {ElMessage} from 'element-plus'
+import apiClient from "@/main.js";
 
 const router = useRouter()
 const tasks = ref([])
@@ -61,7 +62,7 @@ const stateClassMap = {
 // 获取任务列表
 const fetchTasks = async () => {
   try {
-    const response = await this.$axios.get('http://localhost:7788/api/get_task_list')
+    const response = await apiClient.get('http://localhost:7788/api/get_task_list')
     const result = response.data
     if (result.code === 0) {
       tasks.value = result.data.task_list
@@ -96,7 +97,7 @@ const navigateToDetail = (taskId, movieIds, stateText) => {
 const clearAllTasks = async () => {
   //清空所有任务记录
   try {
-    const response = await this.$axios.post('/api/clear_all_tasks')
+    const response = await apiClient.post('/api/clear_all_tasks')
 
     const result = response.data
 

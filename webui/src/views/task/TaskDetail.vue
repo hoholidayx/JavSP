@@ -64,7 +64,7 @@
 import {useRoute, useRouter} from 'vue-router'
 import {ref} from "vue";
 import {ElLoading, ElMessage, ElMessageBox} from "element-plus";
-import axios from 'axios';
+import apiClient from "@/main.js";
 
 const route = useRoute()
 const router = useRouter()
@@ -99,7 +99,7 @@ const taskLogs = ref({})
 const deleteTask = async () => {
   try {
     // 使用 axios 发送 GET 请求（推荐用 delete 方法）
-    const response = await this.$axios.get('/api/remove_task', {
+    const response = await apiClient.get('/api/remove_task', {
       params: {
         task_id: taskData.value.taskId
       }
@@ -115,7 +115,7 @@ const deleteTask = async () => {
     }
   } catch (error) {
     // 错误处理（网络错误或 HTTP 状态码非 2xx）
-    if (axios.isAxiosError(error)) {
+    if (apiClient.isAxiosError(error)) {
       const msg = error.response?.data?.msg || error.message;
       ElMessage.error(`请求失败：${msg}`);
     } else {
@@ -134,7 +134,7 @@ const showTaskLogs = async () => {
   })
 
   try {
-    const response = await this.$axios.get(
+    const response = await apiClient.get(
         `/api/get_task_logs`,
         {
           params: {
@@ -165,7 +165,7 @@ const showMovieDirectory = async () => {
   })
 
   try {
-    const response = await this.$axios.get(
+    const response = await apiClient.get(
         `/api/list_movie_dir`, {
           params: {
             task_id: taskData.value.taskId,

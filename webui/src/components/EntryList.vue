@@ -30,6 +30,11 @@ const menuItems = ref([
     path_name: 'Task/TaskList',
     color: '#647eff'
   },
+  {
+    title: '登录',
+    path_name: 'login',
+    color: '#647eff'
+  },
 ])
 
 // 路由跳转方法

@@ -34,8 +34,8 @@
 </template>
 
 <script>
-import axios from 'axios';
 import qs from 'qs';
+import apiClient from "@/main.js";
 
 export default {
   data() {
@@ -60,7 +60,7 @@ export default {
       this.errorMessage = '';
 
       try {
-        const response = await this.$axios.post(
+        const response = await apiClient.post(
             '/login',
             qs.stringify(this.form),
             {
