@@ -11,7 +11,7 @@ const app = createApp(App)
 // 配置Axios全局默认值
 const apiClient = axios.create({
     // baseURL: "http://localhost:7788",
-    baseURL: "https://javsp.myhub.fun",
+    baseURL: "https://javsp.myhub.fun:17788",
     withCredentials: true, // 保持原withCredentials配置
     timeout: 10000,
 })

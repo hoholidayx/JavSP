@@ -62,7 +62,7 @@ const stateClassMap = {
 // 获取任务列表
 const fetchTasks = async () => {
   try {
-    const response = await apiClient.get('http://localhost:7788/api/get_task_list')
+    const response = await apiClient.get('/api/get_task_list')
     const result = response.data
     if (result.code === 0) {
       tasks.value = result.data.task_list
