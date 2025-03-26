@@ -185,9 +185,9 @@ class Movie:
             if os.path.exists(abs_dst):
                 if rm_if_exist:
                     if os.path.isfile(src):
-                        os.rmdir(src)
-                    elif os.path.isdir(src):
                         os.remove(src)
+                    elif os.path.isdir(src):
+                        os.rmdir(src)
                 else:
                     logger.error(f'File exists: {abs_dst}')
             if (use_hardlink):

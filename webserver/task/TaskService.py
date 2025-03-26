@@ -2,6 +2,7 @@ import concurrent.futures
 import os
 
 from webserver.task.WorkTask import WorkTask
+from webserver.utils.Configuration import CONFIG
 
 
 def build_directory_tree_non_recursive(root_dir):
@@ -94,6 +95,7 @@ class TaskService:
         return [task for task in self._tasks.values() if task.state == state]
 
     def list_movie_dir(self, task_id, movie_dvdid) -> dict | None:
+        movie_dvdid = movie_dvdid.upper()
         task = self.get_task(task_id)
         if task and (movie_dvdid in task.task_result):
             movie_result = task.task_result[movie_dvdid]

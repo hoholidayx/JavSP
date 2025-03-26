@@ -8,7 +8,7 @@ class TaskController:
         self._taskService = TaskService()
 
     def start_task(self, query_param: dict):
-        movie_dvdid = query_param['movie_dvdid']
+        movie_dvdid = query_param['movie_dvdid'].upper()
         if movie_dvdid:
             task = self._taskService.start_task(movie_dvdid)
             return ResponseData(data={"task_id": task.id})
@@ -34,7 +34,7 @@ class TaskController:
         return ResponseData(data={"task_list": response_data})
 
     def list_movie_dir(self, query_param):
-        movie_dvdid = query_param["movie_dvdid"]
+        movie_dvdid = query_param["movie_dvdid"].upper()
         task_id = query_param["task_id"]
         dir_tree = self._taskService.list_movie_dir(task_id, movie_dvdid)
         if not dir_tree:
