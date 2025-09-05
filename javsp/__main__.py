@@ -522,9 +522,9 @@ def RunNormalMode(cfg: Cfg, all_movies, actress_alias_map: {}, logs: Logs = None
                                 logger.info(
                                     f"已下载剧照{pic_url} {id}.png: {width}x{height}, {filesize} [{elapsed}, {speed}]")
                             else:
-                                check_step(False, f"下载剧照{id}: {pic_url}失败")
+                                print( f"下载剧照{id}: {pic_url}失败")
                         except:
-                            check_step(False, f"下载剧照{id}: {pic_url}失败")
+                            print( f"下载剧照{id}: {pic_url}失败")
                         time.sleep(scrape_interval)
                 check_step(True)
 

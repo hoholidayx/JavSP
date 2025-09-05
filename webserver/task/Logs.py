@@ -10,6 +10,7 @@ class Logs:
             message (str): 要记录的日志信息
         """
         self.logs.append(message)
+        print(message)
 
     def get_logs(self):
         """

@@ -11,7 +11,7 @@ scanner:
     - 'Carib(beancom)?'
     - '[^a-z\d](f?hd|lt)[^a-z\d]'
   # 整理哪个文件夹下的影片？（此项留空时将在运行时询问）
-  input_directory: '/root/Workspace/JavOutput'
+  input_directory: '/Users/hoholiday/Downloads/outputs'
   # 哪些后缀的文件应当视为影片？
   filename_extensions: [ .3gp, .avi, .f4v, .flv, .iso, .m2ts, .m4v, .mkv, .mov, .mp4, .mpeg, .rm, .rmvb, .ts, .vob, .webm, .wmv, .strm, .mpg ]
   # 扫描影片文件时忽略指定的文件夹
@@ -28,7 +28,7 @@ network:
   # 各个站点的免代理地址。地址失效时软件会自动尝试获取新地址，你也可以手动设置
   proxy_free:
     avsox: 'https://avsox.click'
-    javbus: 'https://www.seedmm.help'
+    javbus: 'https://www.javbus.com'
     javdb: 'https://javdb368.com'
     javlib: 'https://www.y78k.com'
   # 网络问题导致抓取数据失败时的重试次数，通常3次就差不多了

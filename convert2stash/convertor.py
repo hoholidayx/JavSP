@@ -217,5 +217,5 @@ if __name__ == "__main__":
     5、基于 fanart 生成占位影片
     6、修改影片名称为ID+片名，与目录命名一致
     """
-    processor = MovieProcessor("/Users/hoholiday/Downloads/movies")  # 修改为实际路径
+    processor = MovieProcessor("/Users/hoholiday/Downloads/outputs")  # 修改为实际路径
     processor.process_all()
