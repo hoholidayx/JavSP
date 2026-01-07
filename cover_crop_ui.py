@@ -1,7 +1,7 @@
 import os
 import cv2
 import numpy as np
-from PIL import Image, ImageTk
+from PIL import Image, ImageTk, ImageDraw
 from glob import glob
 from ultralytics import YOLO
 import tkinter as tk
@@ -13,8 +13,15 @@ from datetime import datetime
 CURRENT_INDEX = 0  # 当前显示的图片索引
 IMAGE_PATHS = []  # 所有处理后的图片路径（原路径+裁切后路径）
 ERROR_LOG_PATH = "crop_error_log.txt"  # 错误标注日志文件
-# 新增：保存图片对象引用，防止垃圾回收
-GLOBAL_PHOTO_REFS = {"original": None, "cropped": None}
+# 新增：保存图片对象引用（含标注版）
+GLOBAL_PHOTO_REFS = {
+    "original": None, "cropped": None,
+    "original_annotated": None, "cropped_annotated": None
+}
+# 修复：先定义为None，在主窗口创建后再初始化
+SHOW_ANNOTATION = None
+# 新增：保存主体框信息
+BODY_BOX_CACHE = {}
 
 
 # ---------------------- 工具函数：计算IOU（交并比） ----------------------
@@ -30,7 +37,8 @@ def calculate_iou(box1, box2):
     if inter_x2 <= inter_x1 or inter_y2 <= inter_y1:
         return 0.0
 
-    inter_area = (x2_1 - x1_1) * (y2_1 - y1_1)
+    inter_area = (inter_x2 - inter_x1) * (inter_y2 - inter_y1)
+    area1 = (x2_1 - x1_1) * (y2_1 - y1_1)
     area2 = (x2_2 - x1_2) * (y2_2 - y1_2)
     iou = inter_area / (area1 + area2 - inter_area)
     return iou
@@ -97,9 +105,15 @@ def get_cover_midline(image_path):
 
 # ---------------------- YOLOv8 人脸+人体IOU精准匹配 ----------------------
 def detect_human_full_body_iou(image_path, conf_threshold=0.5, iou_threshold=0.3):
+    # 缓存主体框，避免重复检测
+    cache_key = f"{image_path}_{conf_threshold}_{iou_threshold}"
+    if cache_key in BODY_BOX_CACHE:
+        return BODY_BOX_CACHE[cache_key]
+
     model = YOLO('yolov8n.pt')
     results = model(image_path, conf=conf_threshold)
     if not results or len(results[0].boxes) == 0:
+        BODY_BOX_CACHE[cache_key] = (0, (0, 0), "left", (0, 0, 0, 0))
         return 0, (0, 0), "left", (0, 0, 0, 0)
 
     img_w = results[0].orig_shape[1]
@@ -168,6 +182,7 @@ def detect_human_full_body_iou(image_path, conf_threshold=0.5, iou_threshold=0.3
 
     all_candidates = matched_persons + unmatched_persons + unmatched_faces
     if not all_candidates:
+        BODY_BOX_CACHE[cache_key] = (0, (0, 0), "left", (0, 0, 0, 0))
         return 0, (0, 0), "left", (0, 0, 0, 0)
 
     best_candidate = max(all_candidates, key=lambda x: x[1])
@@ -180,6 +195,7 @@ def detect_human_full_body_iou(image_path, conf_threshold=0.5, iou_threshold=0.3
     main_region = "left" if cx < mid_x else "right"
     max_total_area = best_area
 
+    BODY_BOX_CACHE[cache_key] = (max_total_area, main_center, main_region, best_box)
     return max_total_area, main_center, main_region, best_box
 
 
@@ -282,6 +298,10 @@ def crop_by_full_body_iou_9_16(image_path, output_path, midline_x, valid_region,
     else:
         cropped_img.save(output_path, optimize=True)
 
+    # 缓存裁切框信息
+    BODY_BOX_CACHE[f"{output_path}_crop_box"] = crop_box
+    BODY_BOX_CACHE[f"{output_path}_body_box"] = body_box
+
     return True
 
 
@@ -290,7 +310,9 @@ def batch_process_dvd_covers(source_dir, output_dir,
                              conf_threshold=0.5, iou_threshold=0.3,
                              target_aspect=9 / 16, midline_overlap_thresh=0.3,
                              expand_ratio=0.1):
-    global IMAGE_PATHS
+    global IMAGE_PATHS, BODY_BOX_CACHE
+    # 清空缓存
+    BODY_BOX_CACHE = {}
     os.makedirs(output_dir, exist_ok=True)
     img_extensions = ['*.jpg', '*.jpeg', '*.png', '*.bmp', '*.tiff']
     img_paths = []
@@ -325,7 +347,8 @@ def batch_process_dvd_covers(source_dir, output_dir,
             )
             IMAGE_PATHS.append({
                 "original": img_path,
-                "cropped": output_path
+                "cropped": output_path,
+                "midline_x": midline_x
             })
             success_count += 1
         except Exception as e:
@@ -340,6 +363,71 @@ def batch_process_dvd_covers(source_dir, output_dir,
     show_compare_gui()
 
 
+# ---------------------- 新增：绘制主体框和中线 ----------------------
+def draw_annotation(image_path, is_cropped=False, max_size=(800, 600)):
+    """
+    绘制主体框和中线标注
+    :param image_path: 图片路径
+    :param is_cropped: 是否为裁切后的图片
+    :param max_size: 最大显示尺寸
+    """
+    try:
+        img = Image.open(image_path).convert("RGB")
+        orig_w, orig_h = img.size
+
+        # 获取主体框和裁切框
+        if is_cropped:
+            body_box = BODY_BOX_CACHE.get(f"{image_path}_body_box", (0, 0, 0, 0))
+            crop_box = BODY_BOX_CACHE.get(f"{image_path}_crop_box", (0, 0, 0, 0))
+            # 裁切后图片的主体框需要转换坐标
+            bx1, by1, bx2, by2 = body_box
+            cb_x1, _, _, _ = crop_box
+            body_box = (bx1 - cb_x1, by1, bx2 - cb_x1, by2)
+            midline_x = -1  # 裁切后不显示中线
+        else:
+            # 原图获取主体框和中线
+            cache_key = f"{image_path}_0.5_0.3"  # 默认参数
+            _, _, _, body_box = BODY_BOX_CACHE.get(cache_key, (0, (0, 0), "left", (0, 0, 0, 0)))
+            # 查找中线
+            midline_x = -1
+            for item in IMAGE_PATHS:
+                if item["original"] == image_path:
+                    midline_x = item["midline_x"]
+                    break
+
+        # 缩放图片
+        img.thumbnail(max_size, Image.Resampling.LANCZOS)
+        scale_w = img.size[0] / orig_w
+        scale_h = img.size[1] / orig_h
+
+        # 创建绘制对象
+        draw = ImageDraw.Draw(img)
+
+        # 绘制主体框（红色，宽度3）
+        bx1, by1, bx2, by2 = body_box
+        if bx1 < bx2 and by1 < by2:
+            draw.rectangle(
+                [
+                    int(bx1 * scale_w), int(by1 * scale_h),
+                    int(bx2 * scale_w), int(by2 * scale_h)
+                ],
+                outline="red", width=3
+            )
+
+        # 绘制中线（蓝色，宽度2）- 仅原图显示
+        if not is_cropped and midline_x > 0:
+            draw.line(
+                [int(midline_x * scale_w), 0, int(midline_x * scale_w), img.size[1]],
+                fill="blue", width=2
+            )
+
+        return img
+    except Exception as e:
+        print(f"绘制标注失败 {image_path}: {str(e)}")
+        blank_img = Image.new('RGB', max_size, color='gray')
+        return blank_img
+
+
 # ---------------------- 对比界面相关函数 ----------------------
 def resize_image(image_path, max_size=(800, 600)):
     try:
@@ -352,7 +440,8 @@ def resize_image(image_path, max_size=(800, 600)):
 
 
 def update_image_display(orig_label, crop_label, page_label):
-    global CURRENT_INDEX, IMAGE_PATHS, GLOBAL_PHOTO_REFS
+    """更新图片显示（支持标注开关）"""
+    global CURRENT_INDEX, IMAGE_PATHS, GLOBAL_PHOTO_REFS, SHOW_ANNOTATION
 
     if not IMAGE_PATHS:
         return
@@ -363,14 +452,22 @@ def update_image_display(orig_label, crop_label, page_label):
     orig_path = current_data["original"]
     crop_path = current_data["cropped"]
 
-    orig_img = resize_image(orig_path)
-    crop_img = resize_image(crop_path)
-
-    GLOBAL_PHOTO_REFS["original"] = ImageTk.PhotoImage(orig_img)
-    GLOBAL_PHOTO_REFS["cropped"] = ImageTk.PhotoImage(crop_img)
-
-    orig_label.config(image=GLOBAL_PHOTO_REFS["original"])
-    crop_label.config(image=GLOBAL_PHOTO_REFS["cropped"])
+    if SHOW_ANNOTATION.get():
+        # 显示标注版
+        orig_img = draw_annotation(orig_path, is_cropped=False)
+        crop_img = draw_annotation(crop_path, is_cropped=True)
+        GLOBAL_PHOTO_REFS["original_annotated"] = ImageTk.PhotoImage(orig_img)
+        GLOBAL_PHOTO_REFS["cropped_annotated"] = ImageTk.PhotoImage(crop_img)
+        orig_label.config(image=GLOBAL_PHOTO_REFS["original_annotated"])
+        crop_label.config(image=GLOBAL_PHOTO_REFS["cropped_annotated"])
+    else:
+        # 显示原版
+        orig_img = resize_image(orig_path)
+        crop_img = resize_image(crop_path)
+        GLOBAL_PHOTO_REFS["original"] = ImageTk.PhotoImage(orig_img)
+        GLOBAL_PHOTO_REFS["cropped"] = ImageTk.PhotoImage(crop_img)
+        orig_label.config(image=GLOBAL_PHOTO_REFS["original"])
+        crop_label.config(image=GLOBAL_PHOTO_REFS["cropped"])
 
     page_label.config(text=f"第 {CURRENT_INDEX + 1}/{len(IMAGE_PATHS)} 张")
 
@@ -392,7 +489,7 @@ def mark_correct(orig_label, crop_label, page_label):
 
 
 def mark_error(orig_label, crop_label, page_label):
-    """优化：错误按钮静默记录日志，无弹窗（仅系统错误提示）"""
+    """错误按钮静默记录日志，无弹窗（仅系统错误提示）"""
     global CURRENT_INDEX, IMAGE_PATHS
 
     if not IMAGE_PATHS:
@@ -417,15 +514,35 @@ def mark_error(orig_label, crop_label, page_label):
     next_image(orig_label, crop_label, page_label)
 
 
+def toggle_annotation(orig_label, crop_label, page_label):
+    """切换标注显示/隐藏"""
+    update_image_display(orig_label, crop_label, page_label)
+
+
 def show_compare_gui():
+    global SHOW_ANNOTATION
     compare_root = tk.Toplevel()
-    compare_root.title("图片裁切前后对比")
-    compare_root.geometry("1700x800")
+    compare_root.title("图片裁切前后对比（带主体框标注）")
+    compare_root.geometry("1700x850")
     compare_root.resizable(True, True)
     compare_root.attributes('-topmost', True)
 
+    # 修复：在子窗口创建后初始化BooleanVar，指定父窗口
+    SHOW_ANNOTATION = tk.BooleanVar(compare_root, value=True)
+
     page_label = ttk.Label(compare_root, text="", font=("Arial", 14))
     page_label.pack(pady=10)
+
+    # 新增：标注开关
+    annotation_frame = ttk.Frame(compare_root)
+    annotation_frame.pack(pady=5)
+    annotation_check = ttk.Checkbutton(
+        annotation_frame,
+        text="显示主体框/中线标注（红框=主体，蓝线=中线）",
+        variable=SHOW_ANNOTATION,
+        command=lambda: toggle_annotation(orig_label, crop_label, page_label)
+    )
+    annotation_check.pack()
 
     img_frame = ttk.Frame(compare_root)
     img_frame.pack(pady=10, fill=tk.BOTH, expand=True)
@@ -469,11 +586,18 @@ def show_compare_gui():
     style.configure("Success.TButton", foreground="green", font=("Arial", 10))
     style.configure("Error.TButton", foreground="red", font=("Arial", 10))
 
+    # 默认显示标注
+    SHOW_ANNOTATION.set(True)
     update_image_display(orig_label, crop_label, page_label)
 
     def on_close():
-        global GLOBAL_PHOTO_REFS
-        GLOBAL_PHOTO_REFS = {"original": None, "cropped": None}
+        global GLOBAL_PHOTO_REFS, BODY_BOX_CACHE, SHOW_ANNOTATION
+        GLOBAL_PHOTO_REFS = {
+            "original": None, "cropped": None,
+            "original_annotated": None, "cropped_annotated": None
+        }
+        BODY_BOX_CACHE = {}
+        SHOW_ANNOTATION = None  # 清空变量
         compare_root.destroy()
 
     compare_root.protocol("WM_DELETE_WINDOW", on_close)
@@ -484,7 +608,7 @@ def show_help_window():
     """创建详细说明窗口"""
     help_root = tk.Toplevel()
     help_root.title("工具使用说明")
-    help_root.geometry("800x600")
+    help_root.geometry("800x650")
     help_root.resizable(True, True)
     help_root.attributes('-topmost', True)
 
@@ -492,7 +616,7 @@ def show_help_window():
     help_text = scrolledtext.ScrolledText(help_root, wrap=tk.WORD, font=("Arial", 10), padx=15, pady=15)
     help_text.pack(fill=tk.BOTH, expand=True)
 
-    # 说明内容
+    # 说明内容（新增主体框标注说明）
     help_content = """
 # DVD封面智能裁切工具 详细说明
 ## 一、工具作用
@@ -501,6 +625,7 @@ def show_help_window():
 2. 判定主体是否横跨图片中线，采用差异化裁切策略
 3. 优先保证人物主体完整，再适配目标宽高比（默认9:16）
 4. 提供可视化对比界面，支持人工审核与错误标记
+5. 新增：主体框/中线可视化标注，直观验证识别和裁切效果
 
 ## 二、核心算法原理
 ### 1. 中缝检测（Chambara Midline Detection）
@@ -545,14 +670,25 @@ def show_help_window():
 - 跨中线判定阈值（0-1）：判定主体跨中线的灵敏度，值越低越易判定为跨中线，默认0.3
 - 主体拓展比例（0-0.5）：主体框外的安全区域比例，防止主体边缘被截断，默认0.1
 
-## 五、使用步骤
+## 五、主体框标注说明（新增）
+1. 对比界面新增「显示主体框/中线标注」开关，默认开启
+2. 原图标注：
+   - 红色矩形框：YOLO识别并匹配后的核心主体框（人脸+人体）
+   - 蓝色竖线：算法检测到的图片中线位置
+3. 裁切后标注：
+   - 红色矩形框：主体框（已转换为裁切后图片的相对坐标）
+   - 无中线标注（裁切后无中线概念）
+4. 标注作用：直观验证主体是否被完整包含在裁切框内
+
+## 六、使用步骤
 1. 配置源目录、输出目录及各项参数
 2. 点击「开始裁切并对比」按钮，工具自动处理所有图片
-3. 对比界面弹出后，查看裁切前后效果
-4. 点击「正确」→ 自动跳至下一张；点击「错误」→ 静默记录路径到日志文件
-5. 审核完成后关闭对比窗口即可
+3. 对比界面弹出后，查看裁切前后效果（默认显示主体框/中线标注）
+4. 可通过开关隐藏/显示标注，专注查看裁切效果
+5. 点击「正确」→ 自动跳至下一张；点击「错误」→ 静默记录路径到日志文件
+6. 审核完成后关闭对比窗口即可
 
-## 六、日志说明
+## 七、日志说明
 - 错误日志文件：crop_error_log.txt
 - 日志内容：标记时间、原始图片路径、裁切图片路径
 - 日志位置：脚本运行目录下
@@ -569,6 +705,7 @@ def show_help_window():
 
 # ---------------------- 主界面：所有可调参数可视化 + 说明按钮 ----------------------
 def create_main_gui():
+    # 先创建主窗口，再初始化其他Tkinter组件
     root = tk.Tk()
     root.title("DVD封面智能裁切工具")
     root.geometry("750x650")
@@ -578,7 +715,7 @@ def create_main_gui():
     title_label = ttk.Label(root, text="DVD封面智能裁切工具", font=("Arial", 16, "bold"))
     title_label.pack(pady=20)
 
-    # 说明按钮（新增）
+    # 说明按钮
     help_btn = ttk.Button(root, text="使用说明", command=show_help_window, width=15)
     help_btn.pack(pady=5)
 
@@ -601,13 +738,13 @@ def create_main_gui():
     detect_frame.pack(fill=tk.X, padx=30, pady=10)
 
     ttk.Label(detect_frame, text="检测置信度:", font=("Arial", 11)).grid(row=0, column=0, sticky=tk.W, pady=5)
-    conf_var = tk.DoubleVar(value=0.5)
+    conf_var = tk.DoubleVar(root, value=0.5)  # 显式指定父窗口
     conf_entry = ttk.Entry(detect_frame, textvariable=conf_var, width=15, font=("Arial", 10))
     conf_entry.grid(row=0, column=1, padx=10, pady=5)
     ttk.Label(detect_frame, text="(0-1，越高越严格)", font=("Arial", 9)).grid(row=0, column=2, sticky=tk.W)
 
     ttk.Label(detect_frame, text="IOU匹配阈值:", font=("Arial", 11)).grid(row=1, column=0, sticky=tk.W, pady=5)
-    iou_var = tk.DoubleVar(value=0.3)
+    iou_var = tk.DoubleVar(root, value=0.3)  # 显式指定父窗口
     iou_entry = ttk.Entry(detect_frame, textvariable=iou_var, width=15, font=("Arial", 10))
     iou_entry.grid(row=1, column=1, padx=10, pady=5)
     ttk.Label(detect_frame, text="(0-1，越高匹配越准)", font=("Arial", 9)).grid(row=1, column=2, sticky=tk.W)
@@ -617,19 +754,19 @@ def create_main_gui():
     crop_frame.pack(fill=tk.X, padx=30, pady=10)
 
     ttk.Label(crop_frame, text="目标宽高比:", font=("Arial", 11)).grid(row=0, column=0, sticky=tk.W, pady=5)
-    aspect_var = tk.DoubleVar(value=9 / 16)
+    aspect_var = tk.DoubleVar(root, value=9 / 16)  # 显式指定父窗口
     aspect_entry = ttk.Entry(crop_frame, textvariable=aspect_var, width=15, font=("Arial", 10))
     aspect_entry.grid(row=0, column=1, padx=10, pady=5)
     ttk.Label(crop_frame, text="(默认9/16=0.5625)", font=("Arial", 9)).grid(row=0, column=2, sticky=tk.W)
 
     ttk.Label(crop_frame, text="跨中线判定阈值:", font=("Arial", 11)).grid(row=1, column=0, sticky=tk.W, pady=5)
-    overlap_var = tk.DoubleVar(value=0.3)
+    overlap_var = tk.DoubleVar(root, value=0.3)  # 显式指定父窗口
     overlap_entry = ttk.Entry(crop_frame, textvariable=overlap_var, width=15, font=("Arial", 10))
     overlap_entry.grid(row=1, column=1, padx=10, pady=5)
     ttk.Label(crop_frame, text="(0-1，越低越易判定跨中线)", font=("Arial", 9)).grid(row=1, column=2, sticky=tk.W)
 
     ttk.Label(crop_frame, text="主体拓展比例:", font=("Arial", 11)).grid(row=2, column=0, sticky=tk.W, pady=5)
-    expand_var = tk.DoubleVar(value=0.1)
+    expand_var = tk.DoubleVar(root, value=0.1)  # 显式指定父窗口
     expand_entry = ttk.Entry(crop_frame, textvariable=expand_var, width=15, font=("Arial", 10))
     expand_entry.grid(row=2, column=1, padx=10, pady=5)
     ttk.Label(crop_frame, text="(0-0.5，主体外安全区)", font=("Arial", 9)).grid(row=2, column=2, sticky=tk.W)
@@ -700,5 +837,5 @@ if __name__ == "__main__":
             f.write(f"日志创建时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
             f.write("-" * 80 + "\n")
 
-    # 启动主界面
+    # 启动主界面（确保主窗口先创建）
     create_main_gui()
