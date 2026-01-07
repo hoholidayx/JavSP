@@ -97,9 +97,10 @@ class WorkTask:
             for movie in recognized:
                 if movie.is_stub:
                     for file_path in movie.files:
-                        os.remove(file_path)
+                        if os.path.exists(file_path):
+                            os.remove(file_path)
 
 
 if __name__ == '__main__':
-    task = WorkTask("midv-999")
+    task = WorkTask("RABI-040")
     task.start()

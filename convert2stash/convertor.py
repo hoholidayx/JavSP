@@ -24,6 +24,8 @@ class Config:
     LOG_INDENT = "  "  # 日志缩进单位
 
     FORCE_GALLERY_FILE = ".forcegallery"
+    # 是否重命名 extrafanarts 目录
+    ENABLE_RENAME_FANARTS_DIR_NAME = False
 
 
 # ================= 核心逻辑 =================
@@ -132,7 +134,11 @@ class MovieProcessor:
 
     def process_extrafanart(self, root_dir, movie_dir, movie_id):
         old_dir = movie_dir / Config.ORIGINAL_EXTRAS_DIR
-        new_dir_name = f"{Config.NEW_DIR_PREFIX}{movie_id}"
+        if Config.ENABLE_RENAME_FANARTS_DIR_NAME:
+            new_dir_name = f"{Config.NEW_DIR_PREFIX}{movie_id}"
+        else:
+            new_dir_name = Config.ORIGINAL_EXTRAS_DIR
+
         new_dir = movie_dir / new_dir_name
 
         if not old_dir.exists():
@@ -212,7 +218,7 @@ if __name__ == "__main__":
     """
     1、移动 fanart 图片到 extrafanart 目录
     2、按模板重命名 extrafanart 下所有图片
-    3、重命名 extrafanart 目录
+    3、重命名 extrafanart
     4、在重命名后的 extrafanart 路径下创建 .forcegallery 文件
     5、基于 fanart 生成占位影片
     6、修改影片名称为ID+片名，与目录命名一致
