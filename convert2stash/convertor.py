@@ -18,6 +18,8 @@ class Config:
     # 文件匹配相关
     FANART_PREFIX = "fanart"  # 主扩展图文件名前缀
     IMAGE_EXTENSIONS = ('.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp')  # 支持的图片格式
+    # 保留的文件前缀（不处理这些文件）
+    PRESERVED_FILE_PREFIXES = ("landscape", "disc", "poster")
 
     # 日志相关
     LOG_HEADER = f"\n{'*' * 40}\n"
@@ -51,6 +53,11 @@ class MovieProcessor:
     def is_image_file(self, file_path):
         """检查文件是否为图片"""
         return file_path.suffix.lower() in Config.IMAGE_EXTENSIONS
+
+    def is_preserved_file(self, file_path):
+        """检查是否为需要保留的文件（landscape/disc/poster）"""
+        file_prefix = file_path.name.split('.')[0].lower()
+        return file_prefix in Config.PRESERVED_FILE_PREFIXES
 
     def get_next_available_index(self, target_dir, movie_id):
         """获取下一个可用的文件序号（避免重命名冲突）"""
@@ -89,7 +96,10 @@ class MovieProcessor:
             self.log("跳过非目录项", movie_dir, level=1)
             return
 
-        # 处理fanart文件
+        # 新增：将poster图片复制为disc图片
+        self.copy_poster_to_disc(movie_dir)
+
+        # 处理fanart文件（复制而非移动）
         self.process_fanarts(root_dir, movie_dir, movie_id)
 
         # 处理扩展图片目录
@@ -97,6 +107,37 @@ class MovieProcessor:
 
         # 基于 fanart 生成影片
         self.process_movie(root_dir, dir_name, movie_dir, movie_id)
+
+    def copy_poster_to_disc(self, movie_dir):
+        """将poster图片复制为disc图片（幂等，已存在则跳过）"""
+        self.log("开始处理poster→disc复制", level=1)
+
+        # 查找poster图片文件
+        poster_files = [
+            f for f in movie_dir.glob("poster.*")
+            if self.is_image_file(f)
+        ]
+
+        if not poster_files:
+            self.log("未找到poster图片文件", level=2)
+            return
+
+        # 取第一个poster文件（通常只有一个）
+        poster_file = poster_files[0]
+        # 构建disc文件名（保持相同后缀）
+        disc_file = movie_dir / f"disc{poster_file.suffix}"
+
+        # 检查disc文件是否已存在
+        if disc_file.exists():
+            self.log("disc图片已存在，跳过复制", f"{disc_file.name}", level=2)
+            return
+
+        # 复制文件（保留原poster文件）
+        try:
+            shutil.copy2(str(poster_file), str(disc_file))
+            self.log("复制poster为disc图片", f"{poster_file.name} → {disc_file.name}", level=2)
+        except Exception as e:
+            self.log("复制poster→disc失败", f"{str(e)}", level=2)
 
     def process_movie(self, root_dir, dir_name, movie_dir, movie_id):
         # 查找以 id 为前缀的影片名称
@@ -172,32 +213,62 @@ class MovieProcessor:
             self.log("临时影片文件不存在，重命名失败", str(temp_video_name), level=1)
 
     def process_fanarts(self, root_dir, movie_dir, movie_id):
-        # 只匹配图片类型的fanart文件
+        # 只匹配图片类型的fanart文件，排除保留文件
         fanart_files = [
             f for f in movie_dir.glob(f"{Config.FANART_PREFIX}.*")
-            if self.is_image_file(f)
+            if self.is_image_file(f) and not self.is_preserved_file(f)
         ]
         if not fanart_files:
+            self.log("未发现fanart图片文件", level=1)
             return
 
         self.log("发现fanart图片文件", f"共{len(fanart_files)}个", level=1)
 
-        # 创建目标目录
+        # 创建目标目录（强制创建，已存在则忽略）
         target_dir = movie_dir / Config.ORIGINAL_EXTRAS_DIR
-        if not target_dir.exists():
-            target_dir.mkdir(exist_ok=True)
-            self.log("创建目录", str(target_dir.relative_to(movie_dir)), level=2)
+        target_dir.mkdir(exist_ok=True)  # 确保目录存在，无论是否已存在
+        self.log("确保目标目录存在", str(target_dir.relative_to(movie_dir)), level=2)
 
-        # 移动文件（跳过已移动的）
+        # 复制文件（不再跳过已存在的，强制覆盖/重新生成序号1文件）
         for fanart in fanart_files:
-            target = target_dir / fanart.name
-            if target.exists():
-                self.log("文件已存在，跳过移动", f"{fanart.name} → {target.relative_to(movie_dir)}", level=2)
-                continue
-            shutil.move(str(fanart), str(target))
-            self.log("移动文件",
-                     f"{fanart.name} → {target.relative_to(movie_dir)}",
-                     level=2)
+            # 构建目标文件名（按模板重命名，固定序号1）
+            target_name = Config.FILE_NAME_TEMPLATE.format(
+                prefix=Config.NEW_DIR_PREFIX,
+                movie_id=movie_id,
+                sep=Config.ID_SEPARATOR,
+                index=1,
+                suffix=fanart.suffix
+            )
+            target = target_dir / target_name
+
+            # 强制复制（覆盖已存在的文件）
+            try:
+                # 复制文件（不覆盖已存在的，但确保执行复制流程）
+                if not target.exists():
+                    shutil.copy2(str(fanart), str(target))
+                    self.log("复制并重命名文件",
+                             f"{fanart.name} → {target.relative_to(movie_dir)} (序号固定为1)",
+                             level=2)
+                else:
+                    self.log("序号1文件已存在，跳过复制（但仍执行后续重命名）", f"{target.name}", level=2)
+            except Exception as e:
+                self.log("复制fanart文件失败", f"{fanart.name}: {str(e)}", level=2)
+
+            # 将原目录的fanart文件重命名为landscape（保持原后缀）
+            landscape_file = movie_dir / f"landscape{fanart.suffix}"
+            # 强制重命名：如果已存在则先删除旧的landscape文件
+            try:
+                if landscape_file.exists():
+                    os.remove(landscape_file)
+                    self.log("删除已存在的landscape文件", landscape_file.name, level=2)
+                # 执行重命名
+                fanart.rename(landscape_file)
+                self.log("重命名原fanart文件为landscape（强制）",
+                         f"{fanart.name} → {landscape_file.name}",
+                         level=2)
+            except Exception as e:
+                self.log("重命名fanart为landscape失败", f"{fanart.name}: {str(e)}", level=2)
+
 
     def process_extrafanart(self, root_dir, movie_dir, movie_id):
         old_dir = movie_dir / Config.ORIGINAL_EXTRAS_DIR
@@ -225,11 +296,27 @@ class MovieProcessor:
                 self.log("目标目录已存在，跳过重命名", f"{new_dir.name}", level=1)
                 # 处理原目录文件到新目录
                 for file in old_dir.iterdir():
-                    if file.is_file() and self.is_image_file(file):
+                    if file.is_file() and self.is_image_file(file) and not self.is_preserved_file(file):
+                        # 检查目标文件是否已存在（避免重复）
                         target_file = new_dir / file.name
-                        if not target_file.exists():
-                            shutil.move(str(file), str(target_file))
-                            self.log("迁移文件", f"{file.name} → {new_dir.name}", level=2)
+                        if self.is_already_renamed(file, movie_id):
+                            # 如果源文件已重命名，直接检查目标是否存在
+                            if not target_file.exists():
+                                shutil.move(str(file), str(target_file))
+                                self.log("迁移已重命名文件", f"{file.name} → {new_dir.name}", level=2)
+                        else:
+                            # 未重命名文件，先检查是否已有对应序号文件
+                            target_name = Config.FILE_NAME_TEMPLATE.format(
+                                prefix=Config.NEW_DIR_PREFIX,
+                                movie_id=movie_id,
+                                sep=Config.ID_SEPARATOR,
+                                index=self.get_next_available_index(new_dir, movie_id),
+                                suffix=file.suffix
+                            )
+                            target_file = new_dir / target_name
+                            if not target_file.exists():
+                                shutil.move(str(file), str(target_file))
+                                self.log("迁移并命名文件", f"{file.name} → {target_name}", level=2)
                 # 删除空的旧目录
                 if not any(old_dir.iterdir()):
                     old_dir.rmdir()
@@ -253,10 +340,12 @@ class MovieProcessor:
     def rename_files(self, root_dir, target_dir, movie_id):
         self.log("开始处理内部文件", str(target_dir.relative_to(root_dir)), level=1)
 
-        # 只处理图片文件，排除标记文件
+        # 只处理图片文件，排除标记文件和保留文件
         files = [
             f for f in target_dir.iterdir()
-            if f.is_file() and self.is_image_file(f) and f.name != Config.FORCE_GALLERY_FILE
+            if f.is_file() and self.is_image_file(f)
+               and f.name != Config.FORCE_GALLERY_FILE
+               and not self.is_preserved_file(f)
         ]
 
         # 区分已重命名/未重命名的文件
@@ -268,40 +357,24 @@ class MovieProcessor:
         # 按修改时间升序排列未重命名文件
         unrenamed_files.sort(key=lambda f: f.stat().st_mtime, reverse=False)
 
-        # 获取起始序号（已重命名文件的最大序号 +1，无则从1开始）
+        # 获取起始序号（已重命名文件的最大序号 +1，无则从2开始，因为fanart固定为1）
         start_index = self.get_next_available_index(target_dir, movie_id)
+        # 确保fanart的序号1优先，如果还没占用则从1开始
+        fanart_1_exists = any(self.is_already_renamed(f, movie_id) and "1." in f.name for f in renamed_files)
+        if start_index == 1 and not fanart_1_exists:
+            start_index = 1
+        elif start_index == 1 and fanart_1_exists:
+            start_index = 2
 
         # ========== 核心逻辑：只处理未重命名的文件 ==========
         total_renamed = 0
 
-        # 处理未重命名的fanart文件（优先固定为序号1，如果序号1未被占用）
-        fanart_files = [f for f in unrenamed_files if f.name.lower().startswith(Config.FANART_PREFIX)]
-        other_files = [f for f in unrenamed_files if not f.name.lower().startswith(Config.FANART_PREFIX)]
+        # 处理剩余未重命名文件
+        for idx, file_path in enumerate(unrenamed_files, start=start_index):
+            # 跳过fanart文件（已经在process_fanarts中处理）
+            if file_path.name.lower().startswith(Config.FANART_PREFIX):
+                continue
 
-        # 处理fanart文件（优先序号1）
-        if fanart_files and start_index == 1:
-            main_fanart = fanart_files.pop(0)
-            new_name = Config.FILE_NAME_TEMPLATE.format(
-                prefix=Config.NEW_DIR_PREFIX,
-                movie_id=movie_id,
-                sep=Config.ID_SEPARATOR,
-                index=1,  # 固定序号1
-                suffix=main_fanart.suffix
-            )
-            new_path = target_dir / new_name
-            if not new_path.exists():
-                main_fanart.rename(new_path)
-                self.log("重命名fanart文件(固定序号1)",
-                         f"{main_fanart.name} → {new_name}",
-                         level=2)
-                total_renamed += 1
-                start_index = 2  # 后续从2开始
-            else:
-                self.log("序号1已被占用，跳过fanart固定命名", new_name, level=2)
-
-        # 处理剩余未重命名文件（包括剩余fanart）
-        all_remaining = fanart_files + other_files
-        for idx, file_path in enumerate(all_remaining, start=start_index):
             new_name = Config.FILE_NAME_TEMPLATE.format(
                 prefix=Config.NEW_DIR_PREFIX,
                 movie_id=movie_id,
@@ -350,14 +423,15 @@ class MovieProcessor:
 
 if __name__ == "__main__":
     """
-    优化点：
-    1、移动 fanart 图片到 extrafanart 目录（跳过已移动的）
-    2、按模板重命名 extrafanart 下所有图片（只处理未重命名的图片，跳过已命名的）
-    3、重命名 extrafanart（幂等，已存在则迁移文件并清理空目录）
-    4、在重命名后的 extrafanart 路径下创建 .forcegallery 文件（已存在则跳过）
-    5、基于 fanart 生成占位影片（已存在则跳过生成，只清理旧文件）
-    6、修改影片名称为ID+片名，与目录命名一致（幂等，避免重复生成）
-    7、增加图片类型校验、重命名冲突检测、序号自动顺延
+    1、保留 landscape/disc/poster 文件在原目录，不做任何处理
+    2、新增：将poster图片复制为disc图片（已存在则跳过）
+    3、复制（而非移动）fanart 图片到 extrafanart 目录，并按模板重命名为序号1，同时将原fanart重命名为landscape
+    4、按模板重命名 extrafanart 下所有图片（只处理未重命名的图片，跳过已命名的）
+    5、重命名 extrafanart（幂等，已存在则迁移文件并清理空目录）
+    6、在重命名后的 extrafanart 路径下创建 .forcegallery 文件（已存在则跳过）
+    7、基于 fanart 生成占位影片（已存在则跳过生成，只清理旧文件）
+    8、修改影片名称为ID+片名，与目录命名一致（幂等，避免重复生成）
+    9、强化幂等性，多次执行不会产生重复文件或错误
     """
     processor = MovieProcessor("/Users/hoholiday/Downloads/outputs")  # 修改为实际路径
     processor.process_all()

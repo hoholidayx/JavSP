@@ -25,7 +25,8 @@ from pathlib import Path  # 用于便捷的目录创建
 # 映射文件名称，用于保存原始路径与B/C目录文件名的对应关系
 # 该文件是分次运行的核心，执行C→A前请勿删除/修改
 MAPPING_FILE = "poster_mapping.json"
-
+TARGET_FILE_NAME = "poster"
+#TARGET_FILE_NAME = "disc"
 
 # ===================== 核心函数 =====================
 def get_unique_filename(dst_dir: str, filename: str) -> str:
@@ -89,7 +90,7 @@ def copy_a_to_b(dir_a: str, dir_b: str):
             file_ext = os.path.splitext(file)[1].lower()
 
             # 筛选条件：文件名严格等于"poster" + 是支持的图片格式
-            if file_name == 'poster' and file_ext in SUPPORTED_IMAGE_EXT:
+            if file_name == TARGET_FILE_NAME and file_ext in SUPPORTED_IMAGE_EXT:
                 # 拼接原始文件的完整路径
                 src_abs_path = os.path.join(root, file)
                 # 生成B目录下的唯一文件名（解决重复问题）
@@ -197,7 +198,7 @@ if __name__ == "__main__":
     """
     # ========== 用户配置区（请根据实际情况修改） ==========
     # 注意：Windows路径建议用r"路径"避免转义，Linux/Mac直接写路径（如 "/home/test/dir_a"）
-    DIR_A = r"/Volumes/A-2/DataBucket/NSFW/movies/多人共演"  # 源目录A：存放原始poster图片的根目录
+    DIR_A = r"/Users/hoholiday/Downloads/outputs"  # 源目录A：存放原始poster图片的根目录
     DIR_B = r"/Users/hoholiday/Downloads/input_posters"  # 目标目录B：扁平存放复制后的poster图片
     DIR_C = r"/Users/hoholiday/Downloads/output_posters"  # 处理后目录C：存放其他脚本处理后的图片
     # ====================================================
