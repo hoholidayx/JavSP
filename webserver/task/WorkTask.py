@@ -55,6 +55,7 @@ class WorkTask:
     def start(self):
         self.start_time = datetime.now().strftime("%Y%m%d %H:%M:%S")  # 格式示例："20250316 14:34:33"
         stub_movies = list()
+        recognized = list()
         try:
             self.state = WorkTaskState.RUNNING  # Update state on error
             cfg = load_config()

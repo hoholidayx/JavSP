@@ -197,9 +197,9 @@ if __name__ == "__main__":
     """
     # ========== 用户配置区（请根据实际情况修改） ==========
     # 注意：Windows路径建议用r"路径"避免转义，Linux/Mac直接写路径（如 "/home/test/dir_a"）
-    DIR_A = r"E:\test\dir_a"  # 源目录A：存放原始poster图片的根目录
-    DIR_B = r"E:\test\dir_b"  # 目标目录B：扁平存放复制后的poster图片
-    DIR_C = r"E:\test\dir_c"  # 处理后目录C：存放其他脚本处理后的图片
+    DIR_A = r"/Volumes/A-2/DataBucket/NSFW/movies/多人共演"  # 源目录A：存放原始poster图片的根目录
+    DIR_B = r"/Users/hoholiday/Downloads/input_posters"  # 目标目录B：扁平存放复制后的poster图片
+    DIR_C = r"/Users/hoholiday/Downloads/output_posters"  # 处理后目录C：存放其他脚本处理后的图片
     # ====================================================
 
     # 打印欢迎信息和操作说明

@@ -18,8 +18,8 @@ class PosterCropApp:
 
         # 核心参数
         self.params = {
-            "input_dir": tk.StringVar(value="/Users/hoholiday/Downloads/outputs_posters"),
-            "output_dir": tk.StringVar(value="/Users/hoholiday/Downloads/outputs_posters2"),
+            "input_dir": tk.StringVar(value="/Users/hoholiday/Downloads/input_posters"),
+            "output_dir": tk.StringVar(value="/Users/hoholiday/Downloads/output_posters"),
             "conf_threshold": tk.DoubleVar(value=0.5),
             "body_complete_ratio": tk.DoubleVar(value=0.6),
             "expansion_ratio": tk.DoubleVar(value=0.2),
@@ -276,14 +276,21 @@ class PosterCropApp:
         for r in results:
             boxes = r.boxes
             for box in boxes:
-                if int(box.cls) != 0:
+                # 只处理人物类别（YOLOv8中0代表person）
+                if int(box.cls.item()) != 0:  # 修复：使用.item()获取标量
                     continue
                 try:
-                    x1, y1, x2, y2 = map(int, box.xyxy[0].cpu().numpy())
-                    conf = float(box.conf.cpu().numpy())
-                except:
-                    x1, y1, x2, y2 = map(int, box.xyxy[0].detach().cpu().numpy())
-                    conf = float(box.conf.detach().cpu().numpy())
+                    # 修复核心：正确提取标量值
+                    xyxy = box.xyxy[0].cpu().numpy()  # 获取bbox坐标数组
+                    x1, y1, x2, y2 = map(int, xyxy)  # 直接转换数组中的4个值
+
+                    # 使用.item()将1维置信度数组转为Python标量
+                    conf = box.conf.cpu().numpy().item()
+                except Exception:
+                    # 兼容detach的情况
+                    xyxy = box.xyxy[0].detach().cpu().numpy()
+                    x1, y1, x2, y2 = map(int, xyxy)
+                    conf = box.conf.detach().cpu().numpy().item()
 
                 bbox_w = x2 - x1
                 bbox_h = y2 - y1
