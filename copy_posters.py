@@ -26,7 +26,7 @@ from pathlib import Path  # 用于便捷的目录创建
 # 该文件是分次运行的核心，执行C→A前请勿删除/修改
 MAPPING_FILE = "poster_mapping.json"
 TARGET_FILE_NAME = "poster"
-#TARGET_FILE_NAME = "disc"
+# TARGET_FILE_NAME = "disc"
 
 # ===================== 核心函数 =====================
 def get_unique_filename(dst_dir: str, filename: str) -> str:

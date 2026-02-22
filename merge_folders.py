@@ -61,7 +61,7 @@ def merge_folders(source_dir: str, target_dir: str, overwrite: bool = True):
 def main():
     # ===================== 配置区 =====================
     # 请修改这里的源路径（A）和目标路径（B）
-    SOURCE_FOLDER = r"/Users/hoholiday/Downloads/zhengli"  # 源文件夹A
+    SOURCE_FOLDER = r"/Users/hoholiday/Downloads/outputs/#整理完成"  # 源文件夹A
     TARGET_FOLDER = r"/Volumes/A-2/DataBucket/NSFW/movies/演员"  # 目标文件夹B
     OVERWRITE_FILES = True  # 是否覆盖同名文件
     # ==================================================
